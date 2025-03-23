@@ -8,6 +8,9 @@ Note that not all software packages are required for every platform. Platforms w
 1. [Git](#homebrew)
 1. [GitHub CLI](#homebrew)
 1. [Fast Node Manager](#fast-node-manager)
+1. [Docker Desktop](#docker-desktop)
+1. [Visual Studio Code](#visual-studio-code)
+1. [Remote Development Extension Pack for Visual Studio Code](#remote-development-extension-pack-for-visual-studio-code)
 
 ## Homebrew
 
@@ -73,3 +76,28 @@ curl -fsSL https://fnm.vercel.app/install | bash
 ```batch
 winget install Schniz.fnm
 ```
+
+## Docker Desktop
+
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) provides tools for software developers to use to build and run Docker containers on your development machine. Docker Desktop includes:
+
+- Docker Engine for running containers
+- Docker CLI for building and running Docker containers
+- Docker Compose for running multiple-container solutions
+- Docker Kubernetes for testing solutions in a local single node Kubernetes cluster
+
+The Naked Time team uses Docker Desktop for development using development container support in [Visual Studio Code](#visual-studio-code) and [Jetbrains IDEs](https://jetbrains.com).
+
+Docker Desktop can be downloaded and installed from the [Docker website](https://www.docker.com/products/docker-desktop/).
+
+## Visual Studio Code
+
+[Visual Studio Code](https://code.visualstudio.com) is an open-source text editor and extensible development environment supported by Microsoft. Visual Studio Code supports a rich ecosystem of extensions that add support for many different programming languages and software development tools.
+
+Visual Studio Code can be downloaded and installed from the [Visual Studio Code website](https://code.visualstudio.com).
+
+## Remote Development Extension Pack for Visual Studio Code
+
+The [Remote Development Extension Pack for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack) is a set of extensions for development on remote machines. This extension pack also includes support for using Visual Studio Code to run and develop on [development containers](https://containers.dev).
+
+The Remote Development Extension Pack can be installed from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack).
