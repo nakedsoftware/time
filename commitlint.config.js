@@ -92,7 +92,9 @@ export default {
     rules: {
         'body-max-line-length': [1, 'always', 72],
         'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', []],
+        'scope-enum': [2, 'always', [
+            'web'
+        ]],
         'type-enum': [2, 'always', [
             'build',
             'change',

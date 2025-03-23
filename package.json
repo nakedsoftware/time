@@ -54,5 +54,8 @@
         "commitizen": {
             "path": "./node_modules/@commitlint/cz-commitlint"
         }
-    }
+    },
+    "workspaces": [
+        "src/web"
+    ]
 }
