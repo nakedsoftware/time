@@ -1,0 +1,25 @@
+{
+    "name": "time",
+    "dockerComposeFile": "compose.yaml",
+    "service": "time",
+    "workspaceFolder": "/workspace",
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/git-lfs:1": {
+            "autoPull": false
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22.14.0"
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "codezombiech.gitignore"
+            ]
+        }
+    }
+}

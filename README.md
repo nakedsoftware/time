@@ -66,3 +66,44 @@ Setup.bat
 ```
 
 After `setup.sh` (or `Setup.bat`) have completed successfully, your repository is ready to build, run, and develop for Naked Time.
+
+## Developing for Naked Time
+
+Naked Time supports two development modes, depending on what parts of Naked Time you want to work with. When working on the web application, desktop application, or mobile applications, Naked Time supports local development in your development environment. Local development means that you will use the tools that you have installed on your development machine to build, run, and debug the Naked Time product.
+
+Naked Time's backend services and APIs are designed to be deployed to a Microsoft Azure environment. All of Naked Time's services will be deployed onto machines running the Linux operating system. To make it easier for most developers, who are either using an Apple Mac or Microsoft Windows machine, Naked Time provides and makes use of a [development container](https://containers.dev) to host the development environment for the services and dependencies such as databases, message brokers, and Azure service emulators. With the development container, the Naked Time team is providing a stable development environment that is preconfigured with all programming language compilers and other development tools that you need to work with the Naked Time backend services and APIs. When using the development container with a supported IDE such as [Visual Studio Code](https://code.visualstudio.com) or [Jetbrains IDEs](https://jetbrains.com), the IDE connects to and runs within the development container just like you are connecting to a remote machine. Your development experience is the same on your desktop, but all of the commands that you perform will be executing within the context of the development container.
+
+The client applications are designed to support working with services running locally in development containers. The TCP/IP ports that the backend APIs are receiving requests from are forwarded from the development container to the host machine. This allows the client applications to connect to the services running inside of the development container for an end-to-end development experience.
+
+For more information on development containers, please see:
+
+- [Development Containers website](https://containers.dev)
+- [Visual Studio Code Development Container documentation](https://code.visualstudio.com/docs/devcontainers/containers)
+- [Jetbrains GoLand Development Container documentation](https://www.jetbrains.com/help/go/connect-to-devcontainer.html)
+- [JetBrains WebStorm Development Container documentation](https://www.jetbrains.com/help/webstorm/connect-to-devcontainer.html)
+
+### Starting the Development Container in Visual Studio Code
+
+When you open the directory containing the Naked Time Git repository in Visual Studio Code, Visual Studio Code will automatically detect the presence of the development container and will prompt you to switch to the development container. You will see a prompt like the following in the lower right corner of your Visual Studio Code window:
+
+![Visual Studio Code prompt to open a development container](assets/devcontainer.png)
+
+Clicking the __Reopen in Container__ button will build (if necessary) the development container, start the development container, and then connect Visual Studio Code to the development container.
+
+You can also switch to the development container by using the __CMD + SHIFT + P__ (Apple macOS) or __CTRL + SHIFT + P__ keys to open the Command Palette and execute the __Dev Containers: Reopen in Container__ command.
+
+Finally, the Development Extension Pack for Visual Studio Code added a control to the status bar in the Visual Studio Code that is found in the lower left corner of the window. Tapping that control will open a menu giving you the option of opening the development container:
+
+![Starting a development container in Visual Studio Code](assets/devcontainer.gif)
+
+### Starting the Development Container in JetBrains IDEs
+
+Development tools produced by [Jetbrains](https://jetbrains.com) also support running development containers. To run a development container, you should first clone the repository locally, then you can open the development container within the IDE:
+
+:warning: On Apple macOS, the `.devcontainer` directory is not visible by default. To enable _dot_ files and directories to be shown in Finder, press the __CMD + SHIFT + PERIOD__ keys.
+
+![Starting a development container in a Jetbrains IDE](assets/jetbrains_devcontainer.gif)
+
+## Get Help
+
+Naked Software and the Naked Time team encourage our customers and the public to review our source code to see how we build software. We encourage our licensed customers to tinker with our source code and to add any custom features or changes that bring you or your company value. We are happy to answer questions about our source code, why we built it the way that we built it, and to collaborate on ideas that you may have. Please feel free to reach out to us with your ideas or questions on the [Discussions](https://github.com/nakedsoftware/time/discussions).
