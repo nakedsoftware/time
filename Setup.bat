@@ -2,6 +2,8 @@
 
 :: Copyright 2025 Naked Software, LLC
 ::
+:: Version: 1.0.0 (March 22, 2025)
+::
 :: This Naked Time License Agreement ("Agreement") is a legal agreement between
 :: you ("Licensee") and Naked Software, LLC ("Licensor") for the use of the
 :: Naked Time software product ("Software"). By using the Software, you agree to
