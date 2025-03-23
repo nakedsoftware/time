@@ -101,6 +101,10 @@ set -e
 # Configure the /workspace directory as the safe directory
 git config --global --add safe.directory /workspace
 
+# Install Git LFS and download all large files
+git lfs install --manual > /dev/null
+git lfs pull
+
 # Install NPM dependencies for all Node.js projects and configure Husky to
 # execute Git hooks.
 npm ci
