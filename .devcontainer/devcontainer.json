@@ -11,6 +11,9 @@
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22.14.0"
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.24.1"
     }
   },
   "remoteUser": "vscode",
