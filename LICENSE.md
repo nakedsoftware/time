@@ -1,5 +1,7 @@
 # Naked Time
 
+Copyright 2025 [Naked Software, LLC](https://www.naked.software)
+
 ## License Agreement
 
 This Naked Time License Agreement ("Agreement") is a legal agreement between you ("Licensee") and Naked Software, LLC ("Licensor") for the use of the Naked Time software product ("Software"). By using the Software, you agree to be bound by the terms of this Agreement.
@@ -49,8 +51,6 @@ This Agreement shall be governed by and construed in accordance with the laws of
 This Agreement constitutes the entire agreement between the parties with respect to the Software and supersedes all prior or contemporaneous understandings regarding such subject matter.
 
 By using the Software, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.
-
-Naked Software, LLC
 
 ## FAQ
 

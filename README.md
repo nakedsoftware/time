@@ -48,3 +48,21 @@ After setting up your development environment, you are now able to clone the [Na
     gh repo clone nakedsoftware/time
 
 If you are working with a personal or company fork of the repository, be sure to substitute `nakedsoftware/time` for the name of the forked repository that you are cloning from.
+
+After cloning the repository, you need to prepare the repository for local development. Naked Time requires third-party development tools and libraries be installed before the source code will build correctly. The steps required to prepare the repository for local development have been automated as the [`setup.sh`](setup.sh) (Apple macOS or Linux) or [`Setup.bat`](Setup.bat) (Microsoft Windows) scripts in the root directory of the repository.
+
+- __Apple macOS or Linux__: in the same terminal that you used to clone the repository, run:
+
+```shell
+cd time
+./setup.sh
+```
+
+- __Microsoft Windows__: in the same Command Prompt window, run:
+
+```batch
+cd time
+Setup.bat
+```
+
+After `setup.sh` (or `Setup.bat`) have completed successfully, your repository is ready to build, run, and develop for Naked Time.

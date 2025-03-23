@@ -7,6 +7,7 @@ Note that not all software packages are required for every platform. Platforms w
 1. [Homebrew](#homebrew)
 1. [Git](#homebrew)
 1. [GitHub CLI](#homebrew)
+1. [Fast Node Manager](#fast-node-manager)
 
 ## Homebrew
 
@@ -53,4 +54,22 @@ brew install dh
 
 ```batch
 winget install --id GitHub.cli
+```
+
+## Fast Node Manager
+
+[Fast Node Manager](https://github.com/Schniz/fnm) is a version manager for [Node.js](https://nodejs.org). Fast Node Manager can be used to install, manage, and switch between multiple versions of Node.js. The Naked Time team recommends the use of Fast Node Manager to ensure that you are using the currently supported version of Node.js with the Naked Time source code. The current supported version number for Node.js is stored in the [`.node-version`](../.node-version) file in the root directory of the Naked Time repository.
+
+Fast Node Manager integrates with the shell to automatically switch to the supported version of Node,js when working with the Naked Time source code in a terminal.
+
+- __Apple macOS or Linux__: Fast Node Manager can be installed by executing an installation script in your development environment. If [Homebrew](#homebrew) is installed, the installation script will use Homebrew to install Fast Node Manager. In a terminal, run:
+
+```shell
+curl -fsSL https://fnm.vercel.app/install | bash
+```
+
+- __Microsoft Windows__: Fast Node Manager can be installed using [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/). In a Command Prompt window, run:
+
+```batch
+winget install Schniz.fnm
 ```
