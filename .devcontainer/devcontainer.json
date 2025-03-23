@@ -1,25 +1,44 @@
 {
-    "name": "time",
-    "dockerComposeFile": "compose.yaml",
-    "service": "time",
-    "workspaceFolder": "/workspace",
-    "features": {
-        "ghcr.io/devcontainers/features/git:1": {},
-        "ghcr.io/devcontainers/features/github-cli:1": {},
-        "ghcr.io/devcontainers/features/git-lfs:1": {
-            "autoPull": false
-        },
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "22.14.0"
-        }
+  "name": "time",
+  "dockerComposeFile": "compose.yaml",
+  "service": "time",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git-lfs:1": {
+      "autoPull": false
     },
-    "remoteUser": "vscode",
-    "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "codezombiech.gitignore"
-            ]
-        }
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22.14.0"
     }
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "codezombiech.gitignore",
+        "Vue.volar",
+        "vitest.explorer",
+        "ms-playwright.playwright",
+        "dbaeumer.vscode-eslint",
+        "EditorConfig.EditorConfig",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "explorer.fileNesting.enabled": true,
+        "explorer.fileNesting.patterns": {
+          "tsconfig.json": "tsconfig.*.json, env.d.ts",
+          "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*",
+          "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .prettier*, prettier*, .editorconfig"
+        },
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "explicit"
+        },
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      }
+    }
+  }
 }
