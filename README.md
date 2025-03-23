@@ -1,5 +1,9 @@
 # Naked Time
 
+## Licensing
+
+Before using the source code for Naked Time, please review the [software license agreement](LICENSE.md). Naked Time is a commercial software product and is not open source. Please review the license agreement and [FAQ](LICENSE.md#FAQ) before proceeding.
+
 ## Press Release
 
 ### Naked Software, LLC, Announces the Launch of Naked Time: A Revolutionary Time Management Product
