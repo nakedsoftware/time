@@ -122,9 +122,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.work
+          go-version-file: src/web/service/go.mod
           cache-dependency-path: |
-            go.work.sum
             src/web/service/go.sum
       - name: Lint Source Code
         uses: golangci/golangci-lint-action@v6
