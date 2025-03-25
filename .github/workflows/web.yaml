@@ -1,0 +1,261 @@
+# Copyright 2025 Naked Software, LLC
+#
+# Version: 1.0.0 (March 22, 2025)
+#
+# This Naked Time License Agreement ("Agreement") is a legal agreement between
+# you ("Licensee") and Naked Software, LLC ("Licensor") for the use of the
+# Naked Time software product ("Software"). By using the Software, you agree to
+# be bound by the terms of this Agreement.
+#
+# 1. Grant of License
+#
+# Licensor grants Licensee a non-exclusive, non-transferable, non-sublicensable
+# license to use the Software for non-commercial, educational, or other
+# non-production purposes. Licensee may not use the Software for any commercial
+# purposes without purchasing a commercial license from Licensor.
+#
+# 2. Commercial Use
+#
+# To use the Software for commercial purposes, Licensee much purchase a
+# commercial license from Licensor. A commercial license allows Licensee to use
+# the Software in production environments, build their own version, and add
+# custom features or bug fixes. Licensee may not sell the Software or any
+# derivative works to others.
+#
+# 3. Derivative Works
+#
+# Licensee may create derivative works of the Software for their own use,
+# provided that they maintain a valid commercial license. Licensee may not
+# sell or distribute derivative works to others. Any derivative works must
+# include a copy of this Agreement and retail all copyright notices.
+#
+# 4. Sharing and Contributions
+#
+# Licensee may share their changes or bug fixes to the Software with others,
+# provided that such changes are made freely available and not sold. Licensee
+# is encourage to contribute their bug fixes back to Licensor for inclusion in
+# the Software.
+#
+# 5. Restrictions
+#
+# Licensee may not:
+#
+# - Use the Software for any commercial purposes without a valid commercial
+#   license.
+# - Sell, sublicense, or distribute the Software or any derivative works.
+# - Remove or alter any copyright notices or proprietary legends on the
+#   Software.
+#
+# 6. Termination
+#
+# This Agreement is effective until terminated. Licensor may terminate this
+# Agreement at any time if Licensee breaches any of its terms. Upon
+# termination, Licensee must cease all use of the Software and destroy all
+# copies in their possession.
+#
+# 7. Disclaimer of Warranty
+#
+# The Software is provided "as is" without warranty of any kind, express or
+# implied, including but not limited to the warranties of merchantability,
+# fitness for a particular purpose, and noninfringement. In no event shall
+# Licensor be liable for any claim, damages, or other liability, whether in an
+# action of contract, tort, or otherwise, arising from, out of, or in
+# connection with the Software or the use or other dealings in the Software.
+#
+# 8. Limitation of Liability
+#
+# In no event shall Licensor be liable for any indirect, incidental, special,
+# exemplary, or consequential damages (including, but not limited to,
+# procurement or substitute goods or services; loss of use, data, or profits;
+# or business interruption) however caused and on any theory of liability,
+# whether in contract, strict liability, or tort (including negligence or
+# otherwise) arising in any way out of the use of the Software, even if advised
+# of the possibility of such damage.
+#
+# 9. Governing Law
+#
+# This Agreement shall be governed by and construed in accordance with the laws
+# of the jurisdiction in which Licensor is located, without regard to its
+# conflict of law principles.
+#
+# 10. Entire Agreement
+#
+# This Agreement constitutes the entire agreement between the parties with
+# respect to the Software and supersedes all prior or contemporaneous
+# understandings regarding such subject matter.
+#
+# By using the Software, you acknowledge that you have read this Agreement,
+# understand it, and agree to be bound by its terms and conditions.
+
+# web.yaml
+#
+# This GitHub Actions workflow will build and publish the Naked Time web
+# application.
+
+name: Naked Time Web Application
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/web.yaml"
+      - "src/web/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/web.yaml"
+      - "src/web/**"
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_IMAGE: ${{ github.repository_owner }}/time-web
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  web-application:
+    name: Build and Test the Web Application
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install NPM dependencies
+        run: npm ci
+      - name: Lint the web application
+        run: npm run lint
+        working-directory: src/web/app
+      - name: Run unit tests
+        run: npm run test:unit
+        working-directory: src/web/app
+      - name: Build the web application
+        run: npm run build
+        working-directory: src/web/app
+      - name: Upload Web Application
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: src/web/app/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  web-service:
+    name: Build and Test the Web Service
+    runs-on: ubuntu-24.04
+    needs: web-application
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - amd64
+          - arm64
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v4
+      - name: Download Web Application
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: src/web/service/web
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/web/service/go.mod
+          cache-dependency-path: |
+            src/web/service/go.sum
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Web Server
+        run: go build -v -o build/ ./cmd/timeweb
+        working-directory: src/web/service
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: ${{ matrix.architecture }}
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
+      - name: Build Docker Container
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: src/web/service
+          platforms: linux/${{ matrix.architecture }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          push: true
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.push.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-linux-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-platform-containers:
+    name: Merge Platform Containers
+    runs-on: ubuntu-24.04
+    needs: web-service
+    steps:
+      - name: Download Digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Get Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Create Manifest List and Push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+      - name: Inspect Image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}

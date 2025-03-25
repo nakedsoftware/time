@@ -1,58 +1,61 @@
 {
-    "name": "@nakedsoftware/time",
-    "type": "module",
-    "version": "1.0.0",
-    "description": "Naked Time is a time management and productivity application to help users to focus on value-building activities and making effective use of their available time",
-    "keywords": [
-        "calendar",
-        "management",
-        "naked",
-        "pomodoro",
-        "productivity",
-        "schedule",
-        "time"
-    ],
-    "homepage": "https://www.nakedtime.app",
-    "bugs": {
-        "email": "support@naked.software",
-        "url": "https://github.com/nakedsoftware/time/issues"
-    },
-    "license": "UNLICENSED",
-    "contributors": [
+  "name": "@nakedsoftware/time",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Naked Time is a time management and productivity application to help users to focus on value-building activities and making effective use of their available time",
+  "keywords": [
+    "calendar",
+    "management",
+    "naked",
+    "pomodoro",
+    "productivity",
+    "schedule",
+    "time"
+  ],
+  "homepage": "https://www.nakedtime.app",
+  "bugs": {
+    "email": "support@naked.software",
+    "url": "https://github.com/nakedsoftware/time/issues"
+  },
+  "license": "UNLICENSED",
+  "contributors": [
     {
-        "name": "Michael Collins",
-        "email": "michael.collins@naked.software",
-        "url": "https://michaelfcollins3.dev"
+      "name": "Michael Collins",
+      "email": "michael.collins@naked.software",
+      "url": "https://michaelfcollins3.dev"
     }
-    ],
-    "repository": "github:nakedsoftware/time",
-    "scripts": {
-        "prepare": "husky"
+  ],
+  "repository": "github:nakedsoftware/time",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "@commitlint/cz-commitlint": "^19.8.0",
+    "commitizen": "^4.3.1",
+    "husky": "^9.1.7"
+  },
+  "engines": {
+    "node": "22.14.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "onFail": "error"
     },
-    "devDependencies": {
-        "@commitlint/cli": "^19.8.0",
-        "@commitlint/config-conventional": "^19.8.0",
-        "@commitlint/cz-commitlint": "^19.8.0",
-        "commitizen": "^4.3.1",
-        "husky": "^9.1.7"
-    },
-    "engines": {
-        "node": "22.14.0"
-    },
-    "devEngines": {
-        "runtime": {
-            "name": "node",
-            "onFail": "error"
-        },
-        "packageManager": {
-            "name": "npm",
-            "onFail": "error"
-        }
-    },
-    "private": true,
-    "config": {
-        "commitizen": {
-            "path": "./node_modules/@commitlint/cz-commitlint"
-        }
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error"
     }
+  },
+  "private": true,
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/@commitlint/cz-commitlint"
+    }
+  },
+  "workspaces": [
+    "src/web/app"
+  ]
 }

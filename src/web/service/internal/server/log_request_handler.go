@@ -87,31 +87,105 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-export default {
-    extends: ['@commitlint/config-conventional'],
-    rules: {
-        'body-max-line-length': [1, 'always', 72],
-        'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', [
-            'web'
-        ]],
-        'type-enum': [2, 'always', [
-            'build',
-            'change',
-            'chore',
-            'ci',
-            'deprecate',
-            'docs',
-            'feat',
-            'fix',
-            'perf',
-            'refactor',
-            'remove',
-            'revert',
-            'security',
-            'spike',
-            'style',
-            'test'
-        ]]
-    }
-};
+package server
+
+import (
+	"github.com/felixge/httpsnoop"
+	"github.com/google/uuid"
+	"log/slog"
+	"net/http"
+	"strings"
+)
+
+func logRequestHandler(
+	h http.Handler,
+	level slog.Level,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID, err := uuid.NewV7()
+		if err != nil {
+			slog.Error("failed to generate request id", "error", err)
+		}
+
+		requestIDString := requestID.String()
+
+		slog.Log(
+			r.Context(),
+			level,
+			"HTTP request received",
+			"id",
+			requestIDString,
+			"method",
+			r.Method,
+			"path",
+			r.URL.Path,
+			"uri",
+			r.URL.String(),
+			"referrer",
+			r.Header.Get("Referer"),
+			"userAgent",
+			r.Header.Get("User-Agent"),
+			"clientIP",
+			getRemoteAddress(r),
+		)
+
+		metrics := httpsnoop.CaptureMetrics(h, w, r)
+		var responseLevel slog.Level = level
+		if metrics.Code >= 500 {
+			responseLevel = slog.LevelError
+		}
+
+		slog.Log(
+			r.Context(),
+			responseLevel,
+			"HTTP response completed",
+			"id",
+			requestIDString,
+			"method",
+			r.Method,
+			"path",
+			r.URL.Path,
+			"uri",
+			r.URL.String(),
+			"code",
+			metrics.Code,
+			"duration",
+			metrics.Duration.Seconds(),
+			"written",
+			metrics.Written,
+			"contentType",
+			r.Header.Get("Content-Type"),
+		)
+	})
+}
+
+// https://blog.kowalczyk.info/article/e00e89c3841e4f8c8c769a78b8a90b47/logging-http-requests-in-go.html
+
+func ipAddressFromRemoteAddress(s string) string {
+	idx := strings.LastIndex(s, ":")
+	if idx == -1 {
+		return s
+	}
+
+	return s[:idx]
+}
+
+func getRemoteAddress(r *http.Request) string {
+	header := r.Header
+	realIP := header.Get("X-Real-Ip")
+	forwardedFor := header.Get("X-Forwarded-For")
+	if realIP == "" && forwardedFor == "" {
+		return ipAddressFromRemoteAddress(r.RemoteAddr)
+	}
+
+	if forwardedFor != "" {
+		parts := strings.Split(forwardedFor, ",")
+		for i, p := range parts {
+			parts[i] = strings.TrimSpace(p)
+		}
+
+		return parts[0]
+	}
+
+	return realIP
+}

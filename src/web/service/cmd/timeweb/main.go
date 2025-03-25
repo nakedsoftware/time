@@ -87,31 +87,62 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-export default {
-    extends: ['@commitlint/config-conventional'],
-    rules: {
-        'body-max-line-length': [1, 'always', 72],
-        'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', [
-            'web'
-        ]],
-        'type-enum': [2, 'always', [
-            'build',
-            'change',
-            'chore',
-            'ci',
-            'deprecate',
-            'docs',
-            'feat',
-            'fix',
-            'perf',
-            'refactor',
-            'remove',
-            'revert',
-            'security',
-            'spike',
-            'style',
-            'test'
-        ]]
-    }
-};
+package main
+
+import (
+	"errors"
+	"github.com/nakedsoftware/time/src/web/service/internal/commands"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"log/slog"
+	"os"
+	"path"
+)
+
+func main() {
+	cobra.OnInitialize(configureViper)
+
+	if err := commands.Execute(); err != nil {
+		slog.Error("failed to execute command", "error", err)
+		os.Exit(1)
+	}
+}
+
+func configureViper() {
+	viper.SetEnvPrefix("TIME")
+	viper.AutomaticEnv()
+
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("/etc/nakedsoftware/time/web")
+	addHomeDirectoryConfigurationPath()
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
+			slog.Debug("no configuration file was found")
+		} else {
+			slog.Error(
+				"failed to read configuration file",
+				"error",
+				err,
+			)
+			os.Exit(1)
+		}
+	}
+}
+
+func addHomeDirectoryConfigurationPath() {
+	homePath, err := os.UserHomeDir()
+	if err != nil {
+		slog.Warn("failed to get home directory", "error", err)
+		return
+	}
+
+	configPath := path.Join(
+		homePath,
+		".nakedsoftware/time/web",
+	)
+	viper.AddConfigPath(configPath)
+}

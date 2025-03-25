@@ -87,31 +87,114 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-export default {
-    extends: ['@commitlint/config-conventional'],
-    rules: {
-        'body-max-line-length': [1, 'always', 72],
-        'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', [
-            'web'
-        ]],
-        'type-enum': [2, 'always', [
-            'build',
-            'change',
-            'chore',
-            'ci',
-            'deprecate',
-            'docs',
-            'feat',
-            'fix',
-            'perf',
-            'refactor',
-            'remove',
-            'revert',
-            'security',
-            'spike',
-            'style',
-            'test'
-        ]]
-    }
-};
+package commands
+
+import (
+	"fmt"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"log/slog"
+	"os"
+)
+
+const (
+	logFormatKey = "log.format"
+	logLevelKey  = "log.level"
+)
+
+const (
+	jsonOutputFlag = "json-output"
+	logLevelFlag   = "log-level"
+)
+
+const (
+	formatJSON = "json"
+	formatText = "text"
+)
+
+const (
+	levelDebug = "debug"
+	levelError = "error"
+	levelInfo  = "info"
+	levelWarn  = "warn"
+)
+
+var (
+	jsonOutput bool
+)
+
+var rootCommand = &cobra.Command{
+	Use:     "timeweb",
+	Version: "1.0.0",
+	Short:   "Naked Time Web Application Server",
+	Long: `
+The web application server implements an HTTP service that serves the files
+and assets for the Naked Time web user experience and implements the APIs
+that the web application will invoke to obtain data or execute application
+services and actions.
+`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		var level slog.Level
+		logLevel := viper.GetString(logLevelKey)
+		switch logLevel {
+		case levelDebug:
+			level = slog.LevelDebug
+		case levelInfo:
+			level = slog.LevelInfo
+		case levelWarn:
+			level = slog.LevelWarn
+		case levelError:
+			level = slog.LevelError
+		default:
+			return fmt.Errorf("unknown log level: %s", logLevel)
+		}
+
+		handlerOptions := slog.HandlerOptions{
+			Level: level,
+		}
+
+		var handler slog.Handler
+		if jsonOutput {
+			handler = slog.NewJSONHandler(os.Stderr, &handlerOptions)
+		} else {
+			switch viper.GetString(logFormatKey) {
+			case formatJSON:
+				handler = slog.NewJSONHandler(os.Stderr, &handlerOptions)
+			case formatText:
+				handler = slog.NewTextHandler(os.Stderr, &handlerOptions)
+			default:
+				return fmt.Errorf("unknown log format: %s", logFormatKey)
+			}
+		}
+
+		logger := slog.New(handler)
+		slog.SetDefault(logger)
+
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	},
+}
+
+func init() {
+	rootCommand.PersistentFlags().BoolVar(
+		&jsonOutput,
+		jsonOutputFlag,
+		false,
+		"output log events in JSON format",
+	)
+
+	viper.SetDefault(logFormatKey, formatText)
+
+	viper.SetDefault(logLevelKey, levelInfo)
+	rootCommand.PersistentFlags().String(
+		logLevelFlag,
+		levelInfo,
+		"The level of logging output to see (debug, info, warn, error)",
+	)
+	_ = viper.BindPFlag(
+		logLevelKey,
+		rootCommand.PersistentFlags().Lookup(logLevelFlag),
+	)
+}

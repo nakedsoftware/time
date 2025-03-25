@@ -87,31 +87,80 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-export default {
-    extends: ['@commitlint/config-conventional'],
-    rules: {
-        'body-max-line-length': [1, 'always', 72],
-        'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', [
-            'web'
-        ]],
-        'type-enum': [2, 'always', [
-            'build',
-            'change',
-            'chore',
-            'ci',
-            'deprecate',
-            'docs',
-            'feat',
-            'fix',
-            'perf',
-            'refactor',
-            'remove',
-            'revert',
-            'security',
-            'spike',
-            'style',
-            'test'
-        ]]
-    }
-};
+package server
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+const timeout = 5 * time.Second
+
+type Server struct {
+	Context context.Context
+	AppPath string
+	Host    string
+	Port    int16
+}
+
+func (s *Server) Serve() error {
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(s.AppPath)))
+
+	serverCtx, stop := signal.NotifyContext(
+		s.Context,
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	listenAddress := fmt.Sprintf("%s:%d", s.Host, s.Port)
+	server := http.Server{
+		Addr:    listenAddress,
+		Handler: logRequestHandler(mux, slog.LevelInfo),
+		BaseContext: func(_ net.Listener) context.Context {
+			return serverCtx
+		},
+	}
+
+	_ = context.AfterFunc(serverCtx, func() {
+		slog.Info("stopping web server")
+		timeoutCtx, cancel := context.WithTimeout(
+			context.Background(),
+			timeout,
+		)
+		defer cancel()
+
+		if err := server.Shutdown(timeoutCtx); err != nil {
+			slog.Error("failed to shutdown the server", "error", err)
+			os.Exit(0)
+		}
+
+		<-timeoutCtx.Done()
+		err := timeoutCtx.Err()
+		if errors.Is(err, context.DeadlineExceeded) {
+			slog.Error("timeout exceeded; forcing shutdown")
+		} else {
+			slog.Error("failed to shutdown web server", "error", err)
+		}
+
+		os.Exit(0)
+	})
+
+	slog.Info("listening for requests", "address", listenAddress)
+	err := server.ListenAndServe()
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+
+	slog.Error("failed to start web server", "error", err)
+	return err
+}

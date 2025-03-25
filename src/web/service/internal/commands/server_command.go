@@ -87,31 +87,84 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-export default {
-    extends: ['@commitlint/config-conventional'],
-    rules: {
-        'body-max-line-length': [1, 'always', 72],
-        'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', [
-            'web'
-        ]],
-        'type-enum': [2, 'always', [
-            'build',
-            'change',
-            'chore',
-            'ci',
-            'deprecate',
-            'docs',
-            'feat',
-            'fix',
-            'perf',
-            'refactor',
-            'remove',
-            'revert',
-            'security',
-            'spike',
-            'style',
-            'test'
-        ]]
-    }
-};
+package commands
+
+import (
+	"github.com/nakedsoftware/time/src/web/service/internal/server"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+const (
+	defaultAppPath string = "web"
+	defaultHost string = ""
+	defaultPort int16  = 80
+)
+
+const (
+	appPathKey = "app.path"
+	hostKey = "server.host"
+	portKey = "server.port"
+)
+
+const (
+	appPathFlag = "app-path"
+	hostFlag = "host"
+	portFlag = "port"
+)
+
+var serverCommand = &cobra.Command{
+	Use:   "server",
+	Short: "Starts the Naked Time web server to listen for requests",
+	Long: `
+The server command starts the web server that serves the Naked time web
+application to users.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		server := &server.Server{
+			Context: cmd.Context(),
+			AppPath: viper.GetString(appPathKey),
+			Host:    viper.GetString(hostFlag),
+			Port:    int16(viper.GetInt(portKey)),
+		}
+		return server.Serve()
+	},
+}
+
+func init() {
+	rootCommand.AddCommand(serverCommand)
+
+	viper.SetDefault(appPathKey, defaultAppPath)
+	serverCommand.PersistentFlags().String(
+		appPathFlag,
+		defaultAppPath,
+		"The path to the web application",
+	)
+	_ = viper.BindPFlag(
+		appPathKey,
+		serverCommand.PersistentFlags().Lookup(appPathFlag),
+	)
+	
+	viper.SetDefault(hostKey, defaultHost)
+	serverCommand.PersistentFlags().String(
+		hostFlag,
+		defaultHost,
+		"The host or network interface to listen for requests on",
+	)
+	_ = viper.BindPFlag(
+		hostKey,
+		serverCommand.PersistentFlags().Lookup(hostFlag),
+	)
+
+	_ = viper.BindEnv(portKey, "APP_PORT")
+	viper.SetDefault(portKey, defaultPort)
+	serverCommand.PersistentFlags().Int16P(
+		portFlag,
+		"p",
+		defaultPort,
+		"The TCP/IP port to listen for requests on",
+	)
+	_ = viper.BindPFlag(
+		portKey,
+		serverCommand.PersistentFlags().Lookup(portFlag),
+	)
+}
