@@ -108,8 +108,18 @@ on:
       - ".github/workflows/web.yaml"
       - "src/web/**"
 
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_IMAGE: ${{ github.repository_owner }}/time-web
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
 jobs:
-  build_and_test:
+  web-application:
     name: Build and Test the Web Application
     runs-on: ubuntu-24.04
     steps:
@@ -125,10 +135,128 @@ jobs:
         run: npm ci
       - name: Lint the web application
         run: npm run lint
-        working-directory: src/web
+        working-directory: src/web/app
       - name: Run unit tests
         run: npm run test:unit
-        working-directory: src/web
+        working-directory: src/web/app
       - name: Build the web application
         run: npm run build
-        working-directory: src/web
+        working-directory: src/web/app
+      - name: Upload Web Application
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: src/web/app/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  web-service:
+    name: Build and Test the Web Service
+    runs-on: ubuntu-24.04
+    needs: web-application
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - amd64
+          - arm64
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v4
+      - name: Download Web Application
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: src/web/service/web
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            go.work.sum
+            src/web/service/go.sum
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Web Server
+        run: go build -v -o build/ ./cmd/timeweb
+        working-directory: src/web/service
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: ${{ matrix.architecture }}
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
+      - name: Build Docker Container
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: src/web/service
+          platforms: linux/${{ matrix.architecture }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          push: true
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+      - name: Export Digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.push.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/#{digest#sha256:}"
+      - name: Upload Digest
+        uses: actions/upload-artifact@v2
+        with:
+          name: digests-linux-#{{ matrix.architecture }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-platform-containers:
+    name: Merge Platform Containers
+    runs-on: ubuntu-24.04
+    needs: web-service
+    steps:
+      - name: Download Digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Get Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Create Manifest List and Push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+      - name: Inspect Image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}

@@ -96,16 +96,19 @@ import (
 )
 
 const (
+	defaultAppPath string = "web"
 	defaultHost string = ""
 	defaultPort int16  = 80
 )
 
 const (
+	appPathKey = "app.path"
 	hostKey = "server.host"
 	portKey = "server.port"
 )
 
 const (
+	appPathFlag = "app-path"
 	hostFlag = "host"
 	portFlag = "port"
 )
@@ -119,7 +122,7 @@ application to users.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		server := &server.Server{
 			Context: cmd.Context(),
-			AppPath: "../app/dist",
+			AppPath: viper.GetString(appPathKey),
 			Host:    viper.GetString(hostFlag),
 			Port:    int16(viper.GetInt(portKey)),
 		}
@@ -130,6 +133,17 @@ application to users.`,
 func init() {
 	rootCommand.AddCommand(serverCommand)
 
+	viper.SetDefault(appPathKey, defaultAppPath)
+	serverCommand.PersistentFlags().String(
+		appPathFlag,
+		defaultAppPath,
+		"The path to the web application",
+	)
+	_ = viper.BindPFlag(
+		appPathKey,
+		serverCommand.PersistentFlags().Lookup(appPathFlag),
+	)
+	
 	viper.SetDefault(hostKey, defaultHost)
 	serverCommand.PersistentFlags().String(
 		hostFlag,
