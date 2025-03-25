@@ -209,15 +209,15 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-      - name: Export Digest
+      - name: Export digest
         run: |
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.push.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
-      - name: Upload Digest
+      - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-linux-#{{ matrix.architecture }}
+          name: digests-linux-${{ matrix.architecture }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
