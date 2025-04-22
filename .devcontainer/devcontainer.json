@@ -8,6 +8,10 @@
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/devcontainers/features/node:1": {
             "version": "22.14.0"
+        },
+        "./features/elixir": {
+            "version": "1.18.3",
+            "otpVersion": "27.3.3"
         }
     },
     "remoteUser": "vscode",
