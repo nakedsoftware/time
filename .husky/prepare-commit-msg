@@ -16,7 +16,7 @@
 #
 # 2. Commercial Use
 #
-# To use the Software for commercial purposes, Licensee much purchase a
+# To use the Software for commercial purposes, Licensee must purchase a
 # commercial license from Licensor. A commercial license allows Licensee to use
 # the Software in production environments, build their own version, and add
 # custom features or bug fixes. Licensee may not sell the Software or any
@@ -33,7 +33,7 @@
 #
 # Licensee may share their changes or bug fixes to the Software with others,
 # provided that such changes are made freely available and not sold. Licensee
-# is encourage to contribute their bug fixes back to Licensor for inclusion in
+# is encouraged to contribute their bug fixes back to Licensor for inclusion in
 # the Software.
 #
 # 5. Restrictions
