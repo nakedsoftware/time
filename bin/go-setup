@@ -103,4 +103,7 @@
 
 set -eou pipefail
 
+echo "Installing NPM dependencies..."
+npm ci
+
 echo "The repository is initialized and ready for development."

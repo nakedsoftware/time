@@ -102,4 +102,7 @@ setlocal enabledelayedexpansion
 :: 
 :: Usage: go-setup.bat
 
+echo "Installing NPM dependencies..."
+npm ci
+
 echo "The repository is initialized and ready for development."

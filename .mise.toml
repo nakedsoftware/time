@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright 2025 Naked Software, LLC
 #
 # Version: 1.0.0 (March 22, 2025)
@@ -89,17 +87,5 @@
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# postCreateCommand.sh
-#
-# This program is run automatically after the development container is created.
-# This script will perform additional automated setup steps to ensure that the
-# development container is properly configured and ready to be used for
-# developing Naked Time.
-
-set -e
-
-# Configure the /workspace directory as the safe directory
-git config --global --add safe.directory /workspace
-
-# Install NPM dependencies
-npm ci
+[settings]
+disable_tools = ["node"]
