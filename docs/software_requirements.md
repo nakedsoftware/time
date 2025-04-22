@@ -10,6 +10,7 @@ Note that not all software packages are required for every platform (Apple macOS
 1. [Docker Desktop](#docker-desktop)
 1. [Visual Studio Code](#visual-studio-code)
 1. [Remote Development Extension Pack for Visual Studio Code](#remote-development-extension-pack-for-visual-studio-code)
+1. [Fast Node Manager](#fast-node-manager)
 
 ## Homebrew
 
@@ -92,3 +93,25 @@ Docker Desktop can be downloaded from the [website](https://www.docker.com/produ
 The [Remote Development Extension Pack for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack) is a collection of extensions for [Visual Studio Code](#visual-studio-code) that support developing using containers or connecting to remote developer machines. Naked Time uses the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) included in the extension pack to run and connect to development containers running on your local machine.
 
 The Remote Development Extension Pack can be installed from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack).
+
+# Fast Node Manager
+
+- :white-check-mark: Apple macOS
+- :white-check-mark: Linux
+- :white-check-mark: Microsoft Windows
+
+[Fast Node Manager](https://github.com/Schniz/fnm) is a version management tool for [Node.js](https://nodejs.org). Fast Node Manager can install and switch between different versions of Node.js for different projects. The version of Node.js supported by Naked Time is stored in the [`.node-version`](../.node-version) file in the root directory of the repository. When the developer switches into the Naked Time repository, Fast Node Manager will automatically select the supported version of Node.js to use with Naked Time.
+
+- __Apple macOS or Linux__: Fast Node Manager can be installed using [Homebrew](#homebrew). In a terminal, run:
+
+```bash
+curl -fsSL https://fnm.vercel.app/install | bash
+```
+
+This command will download and run an installation script that will automatically use Homebrew to install Fast Node Manager.
+
+- __Microsoft Windows__: Fast Node Manager can be installed using [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/). In a Command Prompt window, run:
+
+```batch
+winget install Schniz.fnm
+```

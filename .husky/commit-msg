@@ -85,8 +85,11 @@
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# Set the default behavior, in case people don't have core.autocrlf set.
-* text=auto
-*.{cmd,[cC][mM][dD]} text eol=crlf
-*.{bat,[bB][aA][tT]} text eol=crlf
-*.sh text eol=lf
+# commit-msg
+#
+# This program will use commitlint to validate that the commit message is
+# properly formatted using the Conventional Commit format and the configured
+# rules for Naked Time. If the commit message is not properly formatted, then
+# the commit will be aborted and an error message will be displayed.
+
+npx --no -- commitlint --edit $1
