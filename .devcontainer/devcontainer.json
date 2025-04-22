@@ -11,7 +11,8 @@
         },
         "./features/elixir": {
             "version": "1.18.3",
-            "otpVersion": "27.3.3"
+            "otpVersion": "27.3.3",
+            "installPhoenixFramework": true
         }
     },
     "remoteUser": "vscode",

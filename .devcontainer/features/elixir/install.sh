@@ -408,4 +408,16 @@ source /etc/profile.d/elixir-path.sh
 echo "Verifying Elixir installation..."
 iex --version
 
+# Install Phoenix Framework
+if [ "$INSTALLPHOENIXFRAMEWORK" = "true" ]; then
+  # Install inotify-tools for Live Reloading support
+  apt-get install -y inotify-tools
+
+  su - "${_REMOTE_USER}" -c "
+    source /etc/profile.d/elixir-path.sh
+    mix local.hex --force --if-missing
+    mix archive.install hex phx_new --force
+  "
+fi
+
 echo "Done!"
