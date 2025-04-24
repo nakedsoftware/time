@@ -416,6 +416,7 @@ if [ "$INSTALLPHOENIXFRAMEWORK" = "true" ]; then
   su - "${_REMOTE_USER}" -c "
     source /etc/profile.d/elixir-path.sh
     mix local.hex --force --if-missing
+    mix local.rebar --force --if-missing
     mix archive.install hex phx_new --force
   "
 fi

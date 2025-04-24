@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2025 Naked Software, LLC
 #
 # Version: 1.0.0 (March 22, 2025)
@@ -39,6 +41,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -82,15 +85,21 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
-
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
+# go-start
 #
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+# This program will start and run the Naked Time product components so that the
+# developer can test and debug Naked Time on their local machine or development
+# environment.
+#
+# Usage: ./go start
 
-npx --no -- commitlint --edit $1
+set -eou pipefail
+
+pushd src/web > /dev/null
+mix ecto.create
+mix phx.server
+popd > /dev/null

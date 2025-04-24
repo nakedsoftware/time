@@ -82,6 +82,7 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
@@ -221,3 +222,14 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+/_build
+/cover
+/deps
+/doc
+/.fetch
+erl_crash.dump
+*.ez
+*.beam
+/config/*.secret.exs
+.elixir_ls/

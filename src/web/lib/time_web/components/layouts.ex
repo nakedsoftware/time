@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -82,15 +83,21 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
-
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+defmodule NakedTimeWeb.Layouts do
+  @moduledoc """
+  This module holds different layouts used by your application.
 
-npx --no -- commitlint --edit $1
+  See the `layouts` directory for all templates available.
+  The "root" layout is a skeleton rendered as part of the
+  application router. The "app" layout is set as the default
+  layout on both `use NakedTimeWeb, :controller` and
+  `use NakedTimeWeb, :live_view`.
+  """
+  use NakedTimeWeb, :html
+
+  embed_templates "layouts/*"
+end

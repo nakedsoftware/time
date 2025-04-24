@@ -99,11 +99,16 @@
 # Time. This program automates those steps to make it easy for a new developer
 # or an existing developer to get started.
 #
-# Usage: go-setup
+# Usage: ./go setup
 
 set -eou pipefail
 
 echo "Installing NPM dependencies..."
 npm ci
+
+echo "Installing Web dependencies..."
+pushd src/web > /dev/null
+mix deps.get
+popd > /dev/null
 
 echo "The repository is initialized and ready for development."

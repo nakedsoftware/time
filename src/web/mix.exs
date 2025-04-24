@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -82,15 +83,92 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
-
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+defmodule NakedTime.MixProject do
+  use Mix.Project
 
-npx --no -- commitlint --edit $1
+  def project do
+    [
+      app: :time,
+      version: "0.1.0",
+      elixir: "~> 1.14",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
+      deps: deps()
+    ]
+  end
+
+  # Configuration for the OTP application.
+  #
+  # Type `mix help compile.app` for more information.
+  def application do
+    [
+      mod: {NakedTime.Application, []},
+      extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  # Specifies your project dependencies.
+  #
+  # Type `mix help deps` for examples and options.
+  defp deps do
+    [
+      {:phoenix, "~> 1.7.21"},
+      {:phoenix_ecto, "~> 4.5"},
+      {:ecto_sql, "~> 3.10"},
+      {:postgrex, ">= 0.0.0"},
+      {:phoenix_html, "~> 4.1"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:phoenix_live_view, "~> 1.0"},
+      {:floki, ">= 0.30.0", only: :test},
+      {:phoenix_live_dashboard, "~> 0.8.3"},
+      {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
+      {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
+      {:heroicons,
+       github: "tailwindlabs/heroicons",
+       tag: "v2.1.1",
+       sparse: "optimized",
+       app: false,
+       compile: false,
+       depth: 1},
+      {:swoosh, "~> 1.5"},
+      {:finch, "~> 0.13"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.0"},
+      {:gettext, "~> 0.26"},
+      {:jason, "~> 1.2"},
+      {:dns_cluster, "~> 0.1.1"},
+      {:bandit, "~> 1.5"}
+    ]
+  end
+
+  # Aliases are shortcuts or tasks specific to the current project.
+  # For example, to install project dependencies and perform other setup tasks, run:
+  #
+  #     $ mix setup
+  #
+  # See the documentation for `Mix` for more info on aliases.
+  defp aliases do
+    [
+      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
+      "assets.build": ["tailwind time", "esbuild time"],
+      "assets.deploy": [
+        "tailwind time --minify",
+        "esbuild time --minify",
+        "phx.digest"
+      ]
+    ]
+  end
+end

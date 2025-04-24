@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -82,15 +83,44 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
-
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+import Config
 
-npx --no -- commitlint --edit $1
+# Configure your database
+#
+# The MIX_TEST_PARTITION environment variable can be used
+# to provide built-in test partitioning in CI environment.
+# Run `mix help test` for more information.
+config :time, NakedTime.Repo,
+  username: "nakedtime",
+  password: "itsMyLittleS@cret123",
+  hostname: "postgres",
+  database: "time_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2
+
+# We don't run a server during test. If one is required,
+# you can enable the server option below.
+config :time, NakedTimeWeb.Endpoint,
+  http: [ip: {127, 0, 0, 1}, port: 4002],
+  secret_key_base: "mtqtfeKAVluHLZ5OVfzYT6O6mwlsolLxFFa8AEYh75snJpwCqWU5EI7MoJbIJVk6",
+  server: false
+
+# In test we don't send emails
+config :time, NakedTime.Mailer, adapter: Swoosh.Adapters.Test
+
+# Disable swoosh api client as it is only required for production adapters
+config :swoosh, :api_client, false
+
+# Print only warnings and errors during test
+config :logger, level: :warning
+
+# Initialize plugs at runtime for faster test compilation
+config :phoenix, :plug_init_mode, :runtime
+
+# Enable helpful, but potentially expensive runtime checks
+config :phoenix_live_view,
+  enable_expensive_runtime_checks: true

@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -82,15 +83,31 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
-
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+defmodule NakedTimeWeb.ErrorHTML do
+  @moduledoc """
+  This module is invoked by your endpoint in case of errors on HTML requests.
 
-npx --no -- commitlint --edit $1
+  See config/config.exs.
+  """
+  use NakedTimeWeb, :html
+
+  # If you want to customize your error pages,
+  # uncomment the embed_templates/1 call below
+  # and add pages to the error directory:
+  #
+  #   * lib/time_web/controllers/error_html/404.html.heex
+  #   * lib/time_web/controllers/error_html/500.html.heex
+  #
+  # embed_templates "error_html/*"
+
+  # The default is to render a plain text page based on
+  # the template name. For example, "404.html" becomes
+  # "Not Found".
+  def render(template, _assigns) do
+    Phoenix.Controller.status_message_from_template(template)
+  end
+end

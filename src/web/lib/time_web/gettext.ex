@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -82,15 +83,32 @@
 # This Agreement constitutes the entire agreement between the parties with
 # respect to the Software and supersedes all prior or contemporaneous
 # understandings regarding such subject matter.
-
+#
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+defmodule NakedTimeWeb.Gettext do
+  @moduledoc """
+  A module providing Internationalization with a gettext-based API.
 
-npx --no -- commitlint --edit $1
+  By using [Gettext](https://hexdocs.pm/gettext), your module compiles translations
+  that you can use in your application. To use this Gettext backend module,
+  call `use Gettext` and pass it as an option:
+
+      use Gettext, backend: NakedTimeWeb.Gettext
+
+      # Simple translation
+      gettext("Here is the string to translate")
+
+      # Plural translation
+      ngettext("Here is the string to translate",
+               "Here are the strings to translate",
+               3)
+
+      # Domain-based translation
+      dgettext("errors", "Here is the error message to translate")
+
+  See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
+  """
+  use Gettext.Backend, otp_app: :time
+end

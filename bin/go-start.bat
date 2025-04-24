@@ -90,24 +90,23 @@ setlocal enabledelayedexpansion
 :: By using the Software, you acknowledge that you have read this Agreement,
 :: understand it, and agree to be bound by its terms and conditions.
 
-:: go-setup.bat
+:: go-start.bat
 ::
-:: This program initializes a new clone of the Naked Time repository for
-:: development. Naked Time depends on tools and libraries that need to be
-:: downloaded and installed using dependency managers. Naked Time also uses
-:: code generators to generate source code and project files. All of these
-:: pieces need to be in place in order to build, run, debug, and test Naked
-:: Time. This program automates those steps to make it easy for a new developer
-:: or an existing developer to get started.
+:: This program will start and run the Naked Time product components so that the
+:: developer can test and debug Naked Time on their local machine or development
+:: environment.
 :: 
-:: Usage: go.bat setup
+:: Usage: go.bat start
 
-echo "Installing NPM dependencies..."
-npm ci
+set "original_dir=%CD%"
 
-echo "Installing Web dependencies..."
-cd src/web
-mix deps.get
-cd ../..
+cd /d "%~dp0\..\src\web"
 
-echo "The repository is initialized and ready for development."
+call mix run
+if %errorlevel% neq 0 {
+    echo "Error: compilation failed."
+    cd /d "%original_dir%"
+    exit /b %errorlevel%
+}
+
+cd /d "%original_dir%"

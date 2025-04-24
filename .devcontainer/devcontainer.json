@@ -21,8 +21,12 @@
         "vscode": {
             "extensions": [
                 "codezombiech.gitignore",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "JakeBecker.elixir-ls"
             ]
         }
-    }
+    },
+    "forwardPorts": [
+        4000
+    ]
 }
