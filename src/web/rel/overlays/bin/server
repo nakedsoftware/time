@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Copyright 2025 Naked Software, LLC
 #
 # Version: 1.0.0 (March 22, 2025)
@@ -87,5 +89,7 @@
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(NakedTime.Repo, :manual)
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+PHX_SERVER=true exec ./time start
