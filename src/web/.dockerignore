@@ -24,6 +24,20 @@
 !.git/HEAD
 !.git/refs
 
+/assets
+/config
+/lib
+/priv
+/rel
+
+formatter.exs
+.gitignore
+Dockerfile
+mix.exs
+mix.lock
+package.json
+README.md
+
 # Common development/test artifacts
 /cover/
 /doc/
@@ -33,6 +47,7 @@
 
 # Mix artifacts
 /_build/
+!/_build/prod/rel/time/
 /deps/
 *.ez
 
