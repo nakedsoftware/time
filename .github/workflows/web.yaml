@@ -208,7 +208,7 @@ jobs:
       
   publish_platform_image: 
     name: Publish Comtainer Image for ${{ matrix.architecture.docker }}
-    needs: releaase
+    needs: release
     runs-on: ${{ matrix.architecture.runner }}
     strategy:
       fail-fast: false
