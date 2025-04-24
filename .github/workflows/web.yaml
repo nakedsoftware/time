@@ -151,7 +151,7 @@ jobs:
   release:
     name: Create Release for ${{ matrix.architecture.docker }}
     needs: test
-    runs-on: ${{ matrix.architecture.runner }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -159,10 +159,10 @@ jobs:
           - runner: ubuntu-24.04
             platform: linux-amd64
             docker: linux/amd64
-        architecture:
-          - runner: ubuntu-24.04-arm
-            platform: linux-arm64
-            docker: linux/arm64
+        # architecture:
+        #   - runner: ubuntu-24.04-arm
+        #     platform: linux-arm64
+        #     docker: linux/arm64
     steps:
       - name: Check out the Source Code
         uses: actions/checkout@v4
@@ -203,114 +203,114 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       
-  publish_platform_image: 
-    name: Publish Comtainer Image for ${{ matrix.architecture.docker }}
-    needs: releaase
-    runs-on: ${{ matrix.architecture.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        architecture:
-          - runner: ubuntu-24.04
-            platform: linux-amd64
-            docker: linux/amd64
-        architecture:
-          - runner: ubuntu-24.04-arm
-            platform: linux-arm64
-            docker: linux/arm64
-    steps:
-      - name: Check out the Source Code
-        uses: actions/checkout@v4
-      - name: Download Release Artifact for ${{ matrix.architecture.docker }}
-        uses: actions/download-artifact@v4
-        with:
-          name: time-web-${{ matrix.architecture.platform }}
-          path: src/web/_build/prod/rel/time
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Log into the Registry ${{ env.CONTAINER_REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.CONTAINER_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract Docker Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}
-      - name: Build and Push Docker Image
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: src/authentication/Authentication
-          build-args: PUBLISH_PATH=publish
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: ${{ matrix.architecture.docker }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Sign the Published Docker Image
-        if: github.event_name != 'pull_request'
-        run: |
-          echo "${TAGS}" | xargs -I {} cosign sign --yes {} {}@${DIGEST}
-        env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build.outputs.digest }}
-      - name: Export Docker Image Digest
-        if: github.event_name != 'pull_request'
-        run: |
-          mkdir -p ${{ runner.temp }}/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "${{ runner.temp }}/digests/${digest#sha256:}"
-      - name: Upload Digest
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ matrix.architecture.platform }}
-          path: ${{ runner.temp }}/digests/*
-          if-no-files-found: error
-          retention-days: 1
+  # publish_platform_image: 
+  #   name: Publish Comtainer Image for ${{ matrix.architecture.docker }}
+  #   needs: releaase
+  #   runs-on: ${{ matrix.architecture.runner }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       architecture:
+  #         - runner: ubuntu-24.04
+  #           platform: linux-amd64
+  #           docker: linux/amd64
+  #       architecture:
+  #         - runner: ubuntu-24.04-arm
+  #           platform: linux-arm64
+  #           docker: linux/arm64
+  #   steps:
+  #     - name: Check out the Source Code
+  #       uses: actions/checkout@v4
+  #     - name: Download Release Artifact for ${{ matrix.architecture.docker }}
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: time-web-${{ matrix.architecture.platform }}
+  #         path: src/web/_build/prod/rel/time
+  #     - name: Install cosign
+  #       if: github.event_name != 'pull_request'
+  #       uses: sigstore/cosign-installer@v3
+  #     - name: Setup Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #     - name: Log into the Registry ${{ env.CONTAINER_REGISTRY }}
+  #       if: github.event_name != 'pull_request'
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ env.CONTAINER_REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Extract Docker Metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}
+  #     - name: Build and Push Docker Image
+  #       id: build
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: src/authentication/Authentication
+  #         build-args: PUBLISH_PATH=publish
+  #         push: ${{ github.event_name != 'pull_request' }}
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: ${{ steps.meta.outputs.labels }}
+  #         platforms: ${{ matrix.architecture.docker }}
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+  #     - name: Sign the Published Docker Image
+  #       if: github.event_name != 'pull_request'
+  #       run: |
+  #         echo "${TAGS}" | xargs -I {} cosign sign --yes {} {}@${DIGEST}
+  #       env:
+  #         TAGS: ${{ steps.meta.outputs.tags }}
+  #         DIGEST: ${{ steps.build.outputs.digest }}
+  #     - name: Export Docker Image Digest
+  #       if: github.event_name != 'pull_request'
+  #       run: |
+  #         mkdir -p ${{ runner.temp }}/digests
+  #         digest="${{ steps.build.outputs.digest }}"
+  #         touch "${{ runner.temp }}/digests/${digest#sha256:}"
+  #     - name: Upload Digest
+  #       if: github.event_name != 'pull_request'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: digests-${{ matrix.architecture.platform }}
+  #         path: ${{ runner.temp }}/digests/*
+  #         if-no-files-found: error
+  #         retention-days: 1
 
-  publish_multiplatform_image:
-    name: Publish Multi-Platform Container Image
-    runs-on: ubuntu-24.04
-    needs: publish_platform_image
-    if: github.event_name != 'pull_request'
-    steps:
-      - name: Download Digests
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ runner.temp }}/digests
-          pattern: digests-*
-          merge-multiple: true
-      - name: Log into the Registry ${{ env.CONTAINER_REGISTRY }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.CONTAINER_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract Docker Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}
-          tags: |
-            type=match,pattern=authentication\/v(\d+\.\d+\.\d+),group=1
-            type=match,pattern=authentication\/v(\d+\.\d+),group=1
-            type=match,pattern=authentication\/v([1-9][0-9]+),group=1
-            type=ref,event=branch
-            type=ref,event=pr
-      - name: Create Manifest List and Push
-        run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}@sha256:%s ' *)
-        working-directory: ${{ runner.temp }}/digests
-      - name: Inspect Image
-        run: |
-          docker buildx imagetools inspect ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+  # publish_multiplatform_image:
+  #   name: Publish Multi-Platform Container Image
+  #   runs-on: ubuntu-24.04
+  #   needs: publish_platform_image
+  #   if: github.event_name != 'pull_request'
+  #   steps:
+  #     - name: Download Digests
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: ${{ runner.temp }}/digests
+  #         pattern: digests-*
+  #         merge-multiple: true
+  #     - name: Log into the Registry ${{ env.CONTAINER_REGISTRY }}
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ env.CONTAINER_REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Extract Docker Metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}
+  #         tags: |
+  #           type=match,pattern=authentication\/v(\d+\.\d+\.\d+),group=1
+  #           type=match,pattern=authentication\/v(\d+\.\d+),group=1
+  #           type=match,pattern=authentication\/v([1-9][0-9]+),group=1
+  #           type=ref,event=branch
+  #           type=ref,event=pr
+  #     - name: Create Manifest List and Push
+  #       run: |
+  #         docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+  #           $(printf '${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}@sha256:%s ' *)
+  #       working-directory: ${{ runner.temp }}/digests
+  #     - name: Inspect Image
+  #       run: |
+  #         docker buildx imagetools inspect ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
