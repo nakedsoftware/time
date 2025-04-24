@@ -135,6 +135,8 @@ jobs:
         with:
           elixir-version: '1.18.3'
           otp-version: '27.3.3'
+        env:
+          ImageOS: ubuntu24
       - name: Restore Dependencies Cache
         uses: actions/cache@v4
         with:
