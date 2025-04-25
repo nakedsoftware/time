@@ -100,9 +100,9 @@
 #   - https://pkgs.org/ - resource for finding needed packages
 #   - Ex: hexpm/elixir:1.18.3-erlang-27.3.3-debian-bullseye-20250407-slim
 #
-ARG DEBIAN_VERSION=bullseye-20250407-slim
+ARG UBUNTU_VERSION="22.04"
 
-ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
+ARG RUNNER_IMAGE="ubuntu:${UBUNTU_VERSION}"
 
 FROM ${RUNNER_IMAGE}
 
@@ -125,6 +125,9 @@ ENV MIX_ENV="prod"
 
 # Only copy the final release from the build stage
 COPY --chown=nobody:root _build/${MIX_ENV}/rel/time ./
+
+# Give all of the files execute permissions
+RUN chmod -R +x .
 
 USER nobody
 
