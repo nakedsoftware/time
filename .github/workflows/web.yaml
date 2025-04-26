@@ -92,6 +92,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'web/v*'
     paths:
       - '.github/workflows/web.yaml'
       - 'src/web/**'
@@ -199,6 +201,7 @@ jobs:
         id: image
         run: echo "ref=$(echo '${{ steps.meta.outputs.tags }}' | head -n 1)" >> $GITHUB_OUTPUT
       - name: Scan for Vulnerabilities
+        if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ steps.image.outputs.ref }}@${{ steps.build.outputs.digest }}
@@ -253,9 +256,9 @@ jobs:
         with:
           images: ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_IMAGE_NAME }}
           tags: |
-            type=match,pattern=authentication\/v(\d+\.\d+\.\d+),group=1
-            type=match,pattern=authentication\/v(\d+\.\d+),group=1
-            type=match,pattern=authentication\/v([1-9][0-9]+),group=1
+            type=match,pattern=web\/v(\d+\.\d+\.\d+),group=1
+            type=match,pattern=web\/v(\d+\.\d+),group=1
+            type=match,pattern=web\/v([1-9][0-9]+),group=1
             type=ref,event=branch
             type=ref,event=pr
       - name: Create Manifest List and Push
