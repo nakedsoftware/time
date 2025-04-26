@@ -153,6 +153,7 @@ jobs:
   publish_platform_image: 
     name: Publish Comtainer Image for ${{ matrix.architecture.docker }}
     runs-on: ${{ matrix.architecture.runner }}
+    needs: test
     strategy:
       fail-fast: false
       matrix:
