@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -86,43 +87,39 @@
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+defmodule NakedTime.Application do
+  # See https://hexdocs.pm/elixir/Application.html
+  # for more information on OTP Applications
+  @moduledoc false
 
-name: Validate Commit Messages
+  use Application
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  @impl true
+  def start(_type, _args) do
+    children = [
+      NakedTimeWeb.Telemetry,
+      NakedTime.Repo,
+      {DNSCluster, query: Application.get_env(:time, :dns_cluster_query) || :ignore},
+      {Phoenix.PubSub, name: NakedTime.PubSub},
+      # Start the Finch HTTP client for sending emails
+      {Finch, name: NakedTime.Finch},
+      # Start a worker by calling: NakedTime.Worker.start_link(arg)
+      # {NakedTime.Worker, arg},
+      # Start to serve requests, typically the last entry
+      NakedTimeWeb.Endpoint
+    ]
 
-jobs:
-  commitlint:
-    name: Validate Commit Messages
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.node-version'
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install commitlint
-        run: npm ci
-      - name: Validate current commit (last commit) with commitlint
-        if: github.event_name == 'push'
-        run: npx commitlint --last --verbose
-      - name: Validate PR commits with commitlint
-        if: github.event_name == 'pull_request'
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+    # See https://hexdocs.pm/elixir/Supervisor.html
+    # for other strategies and supported options
+    opts = [strategy: :one_for_one, name: NakedTime.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
+
+  # Tell Phoenix to update the endpoint configuration
+  # whenever the application is updated.
+  @impl true
+  def config_change(changed, _new, removed) do
+    NakedTimeWeb.Endpoint.config_change(changed, removed)
+    :ok
+  end
+end

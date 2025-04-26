@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -86,43 +87,27 @@
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
-#
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+defmodule NakedTimeWeb.ErrorHTML do
+  @moduledoc """
+  This module is invoked by your endpoint in case of errors on HTML requests.
 
-name: Validate Commit Messages
+  See config/config.exs.
+  """
+  use NakedTimeWeb, :html
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  # If you want to customize your error pages,
+  # uncomment the embed_templates/1 call below
+  # and add pages to the error directory:
+  #
+  #   * lib/time_web/controllers/error_html/404.html.heex
+  #   * lib/time_web/controllers/error_html/500.html.heex
+  #
+  # embed_templates "error_html/*"
 
-jobs:
-  commitlint:
-    name: Validate Commit Messages
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.node-version'
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install commitlint
-        run: npm ci
-      - name: Validate current commit (last commit) with commitlint
-        if: github.event_name == 'push'
-        run: npx commitlint --last --verbose
-      - name: Validate PR commits with commitlint
-        if: github.event_name == 'pull_request'
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+  # The default is to render a plain text page based on
+  # the template name. For example, "404.html" becomes
+  # "Not Found".
+  def render(template, _assigns) do
+    Phoenix.Controller.status_message_from_template(template)
+  end
+end

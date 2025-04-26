@@ -39,6 +39,7 @@
 # 5. Restrictions
 #
 # Licensee may not:
+#
 # - Use the Software for any commercial purposes without a valid commercial
 #   license.
 # - Sell, sublicense, or distribute the Software or any derivative works.
@@ -86,43 +87,48 @@
 # By using the Software, you acknowledge that you have read this Agreement,
 # understand it, and agree to be bound by its terms and conditions.
 
-# commit-msg
+# This file excludes paths from the Docker build context.
 #
-# This program will use commitlint to validate that the commit message is
-# properly formatted using the Conventional Commit format and the configured
-# rules for Naked Time. If the commit message is not properly formatted, then
-# the commit will be aborted and an error message will be displayed.
+# By default, Docker's build context includes all files (and folders) in the
+# current directory. Even if a file isn't copied into the container it is still sent to
+# the Docker daemon.
+#
+# There are multiple reasons to exclude files from the build context:
+#
+# 1. Prevent nested folders from being copied into the container (ex: exclude
+#    /assets/node_modules when copying /assets)
+# 2. Reduce the size of the build context and improve build time (ex. /build, /deps, /doc)
+# 3. Avoid sending files containing sensitive information
+#
+# More information on using .dockerignore is available here:
+# https://docs.docker.com/engine/reference/builder/#dockerignore-file
 
-name: Validate Commit Messages
+.dockerignore
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+# Ignore git, but keep git HEAD and refs to access current commit hash if needed:
+#
+# $ cat .git/HEAD | awk '{print ".git/"$2}' | xargs cat
+# d0b8727759e1e0e7aa3d41707d12376e373d5ecc
+.git
+!.git/HEAD
+!.git/refs
 
-jobs:
-  commitlint:
-    name: Validate Commit Messages
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.node-version'
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install commitlint
-        run: npm ci
-      - name: Validate current commit (last commit) with commitlint
-        if: github.event_name == 'push'
-        run: npx commitlint --last --verbose
-      - name: Validate PR commits with commitlint
-        if: github.event_name == 'pull_request'
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+# Common development/test artifacts
+/cover/
+/doc/
+/test/
+/tmp/
+.elixir_ls
+
+# Mix artifacts
+/_build/
+/deps/
+*.ez
+
+# Generated on crash by the VM
+erl_crash.dump
+
+# Static artifacts - These should be fetched and built inside the Docker image
+/assets/node_modules/
+/priv/static/assets/
+/priv/static/cache_manifest.json

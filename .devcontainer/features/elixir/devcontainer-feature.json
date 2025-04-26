@@ -1,0 +1,31 @@
+{
+    "id": "elixir",
+    "version": "1.0.0",
+    "name": "Elixir",
+    "description": "Installs the Elixir programming language",
+    "keywords": [
+        "elixir",
+        "language",
+        "otp"
+    ],
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "Elixir version to install. Use 'latest' for the latest version."
+        },
+        "otpVersion": {
+            "type": "string",
+            "default": "latest",
+            "description": "OTP version to install. Use 'latest' for the latest version."
+        },
+        "installPhoenixFramework": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to install the Phoenix Framework."
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}

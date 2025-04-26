@@ -6,8 +6,14 @@
     "features": {
         "ghcr.io/devcontainers/features/git:1": {},
         "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
         "ghcr.io/devcontainers/features/node:1": {
             "version": "22.14.0"
+        },
+        "./features/elixir": {
+            "version": "1.18.3",
+            "otpVersion": "27.3.3",
+            "installPhoenixFramework": true
         }
     },
     "remoteUser": "vscode",
@@ -16,8 +22,13 @@
         "vscode": {
             "extensions": [
                 "codezombiech.gitignore",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "JakeBecker.elixir-ls",
+                "ms-azuretools.vscode-docker"
             ]
         }
-    }
+    },
+    "forwardPorts": [
+        4000
+    ]
 }
