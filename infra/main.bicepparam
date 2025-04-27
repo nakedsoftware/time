@@ -87,32 +87,8 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-export default {
-    extends: ['@commitlint/config-conventional'],
-    rules: {
-        'body-max-line-length': [1, 'always', 72],
-        'header-max-length': [2, 'always', 52],
-        'scope-enum': [2, 'always', [
-            'azure',
-            'web'
-        ]],
-        'type-enum': [2, 'always', [
-            'build',
-            'change',
-            'chore',
-            'ci',
-            'deprecate',
-            'docs',
-            'feat',
-            'fix',
-            'perf',
-            'refactor',
-            'remove',
-            'revert',
-            'security',
-            'spike',
-            'style',
-            'test'
-        ]]
-    }
-};
+using './main.bicep'
+
+param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'time-dev')
+param location = readEnvironmentVariable('AZURE_LOCATION', 'centralus')
+param postgresAdministratorLoginPassword = readEnvironmentVariable('POSTGRES_PASSWORD', 'postgres')
