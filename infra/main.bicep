@@ -114,11 +114,14 @@ param containerRegistryName string = ''
 param logAnalyticsName string = ''
 
 @description('Administrator login for the PostgreSQL server')
-param postgresAdministratorLogin string = 'postgres'
+param postgresAdministratorLogin string
 
 @description('Administrator password for the PostgreSQL server')
 @secure()
 param postgresAdministratorLoginPassword string
+
+@description('Name of the PostgreSQL database')
+param postgresDatabaseName string
 
 @description('Name of the PostgreSQL server to be created')
 param postgresServerName string = ''
@@ -221,7 +224,7 @@ module web 'br/public:avm/ptn/azd/container-app-upsert:0.1.2' = {
     env: [
       {
         name: 'DATABASE_URL'
-        value: 'ecto://postgres:${postgresAdministratorLoginPassword}@${postgres.outputs.fqdn}:5432/postgres?ssl=true'
+        value: 'ecto://${postgresAdministratorLogin}:${postgresAdministratorLoginPassword}@${postgres.outputs.fqdn}:5432/${postgresDatabaseName}?ssl=true'
       }
       {
         name: 'PHX_HOST'

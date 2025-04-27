@@ -89,7 +89,9 @@
 # understand it, and agree to be bound by its terms and conditions.
 
 name: time
-  # services:
-  #   web:
-  #     image: nakedsoftware/time:latest
-  #     project: src/web
+
+services:
+  web:
+    project: src/web
+    host: containerapp
+    language: js

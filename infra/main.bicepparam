@@ -91,4 +91,6 @@ using './main.bicep'
 
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'time-dev')
 param location = readEnvironmentVariable('AZURE_LOCATION', 'centralus')
+param postgresAdministratorLogin = readEnvironmentVariable('POSTGRES_USER', 'postgres')
 param postgresAdministratorLoginPassword = readEnvironmentVariable('POSTGRES_PASSWORD', 'postgres')
+param postgresDatabaseName = readEnvironmentVariable('POSTGRES_DB', 'time')
