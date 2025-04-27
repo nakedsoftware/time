@@ -221,6 +221,7 @@ module web 'br/public:avm/ptn/azd/container-app-upsert:0.1.2' = {
     daprAppProtocol: 'http'
     daprEnabled: true
     enableTelemetry: true
+    targetPort: 4000
     env: [
       {
         name: 'DATABASE_URL'
