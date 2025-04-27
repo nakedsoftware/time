@@ -236,7 +236,7 @@ module web 'br/public:avm/ptn/azd/container-app-upsert:0.1.2' = {
       }
       {
         name: 'PORT'
-        value: '80'
+        value: '4000'
       }
     ]
     ingressEnabled: true
