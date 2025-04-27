@@ -28,7 +28,8 @@
                 "tamasfe.even-better-toml",
                 "JakeBecker.elixir-ls",
                 "ms-azuretools.vscode-docker",
-                "ms-azuretools.azure-dev"
+                "ms-azuretools.azure-dev",
+                "ms-ossdata.vscode-postgresql"
             ]
         }
     },
