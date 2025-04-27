@@ -29,7 +29,8 @@
                 "JakeBecker.elixir-ls",
                 "ms-azuretools.vscode-docker",
                 "ms-azuretools.azure-dev",
-                "ms-ossdata.vscode-postgresql"
+                "ms-ossdata.vscode-postgresql",
+                "github.vscode-github-actions"
             ]
         }
     },

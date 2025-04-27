@@ -123,8 +123,11 @@ param postgresAdministratorLoginPassword string
 @description('Name of the PostgreSQL server to be created')
 param postgresServerName string = ''
 
-@description('Nake of the resource group to own the Azure resources')
+@description('Name of the resource group to own the Azure resources')
 param resourceGroupName string = ''
+
+@description('Name of the web application to be created')
+param webAppName string = ''
 
 var abbrs = loadJsonContent('./abbreviations.json')
 
@@ -177,7 +180,7 @@ module containerApps 'br/public:avm/ptn/azd/container-apps-stack:0.1.1' = {
   name: 'containerApps'
   scope: rg
   params: {
-    containerAppsEnvironmentName: !empty(containerAppsEnvironmentName) ? containerAppsEnvironmentName : '${abbrs.appContainerApps}${resourceToken}'
+    containerAppsEnvironmentName: !empty(containerAppsEnvironmentName) ? containerAppsEnvironmentName : '${abbrs.appManagedEnvironments}${resourceToken}'
     containerRegistryName: !empty(containerRegistryName) ? containerRegistryName : '${abbrs.containerRegistryRegistries}${resourceToken}'
     logAnalyticsWorkspaceResourceId: monitoring.outputs.logAnalyticsWorkspaceResourceId
     acrAdminUserEnabled: true
@@ -191,6 +194,58 @@ module containerApps 'br/public:avm/ptn/azd/container-apps-stack:0.1.1' = {
   }
 }
 
+module webIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
+  name: 'webIdentity'
+  scope: rg
+  params: {
+    name: '${abbrs.managedIdentityUserAssignedIdentities}web-${resourceToken}'
+    location: location
+  }
+}
+
+module web 'br/public:avm/ptn/azd/container-app-upsert:0.1.2' = {
+  name: 'web'
+  scope: rg
+  params: {
+    name: !empty(webAppName) ? webAppName : '${abbrs.appContainerApps}web-${resourceToken}'
+    containerAppsEnvironmentName: containerApps.outputs.environmentName
+    containerCpuCoreCount: '0.5'
+    containerMemory: '1.0Gi'
+    containerMaxReplicas: 1
+    containerMinReplicas: 1
+    containerRegistryName: containerApps.outputs.registryName
+    daprAppId: 'web'
+    daprAppProtocol: 'http'
+    daprEnabled: true
+    enableTelemetry: true
+    env: [
+      {
+        name: 'DATABASE_URL'
+        value: 'ecto://postgres:${postgresAdministratorLoginPassword}@${postgres.outputs.fqdn}:5432/postgres?ssl=true'
+      }
+      {
+        name: 'PHX_HOST'
+        value: 'www.nakedtime.app'
+      }
+      {
+        name: 'SECRET_KEY_BASE'
+        value: 'eBLbmGlctHX9gKLVdI+SS165KAKfGIf7wpfFBJU7yrxjWy0xAyvxJDI/DfZ29TSw'
+      }
+      {
+        name: 'PORT'
+        value: '80'
+      }
+    ]
+    ingressEnabled: true
+    identityType: 'UserAssigned'
+    identityName: webIdentity.name
+    userAssignedIdentityResourceId: webIdentity.outputs.resourceId
+    identityPrincipalId: webIdentity.outputs.principalId
+    location: location
+    tags: union(tags, { 'azd-service-name': 'web' })
+  }
+}
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPLICATIONINSIGHTS_NAME string = monitoring.outputs.applicationInsightsName
 output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerApps.outputs.environmentName
@@ -199,3 +254,4 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerApps.outputs.registryName
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output POSTGRES_HOST string = postgres.outputs.fqdn
+output WEB_APP_URL string = web.outputs.uri
