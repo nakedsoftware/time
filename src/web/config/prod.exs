@@ -90,8 +90,7 @@
 import Config
 
 config :time, NakedTime.Repo,
-  ssl: true,
-  ssl_opts: [
+  ssl: [
     verify: :verify_none
   ]
 

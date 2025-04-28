@@ -212,20 +212,13 @@ module web 'br/public:avm/ptn/azd/container-app-upsert:0.1.2' = {
   params: {
     name: !empty(webAppName) ? webAppName : '${abbrs.appContainerApps}web-${resourceToken}'
     containerAppsEnvironmentName: containerApps.outputs.environmentName
-    containerCpuCoreCount: '0.5'
-    containerMemory: '1.0Gi'
+    containerRegistryName: containerApps.outputs.registryName
     containerMaxReplicas: 1
     containerMinReplicas: 1
-    containerRegistryName: containerApps.outputs.registryName
-    daprAppId: 'web'
-    daprAppProtocol: 'http'
-    daprEnabled: true
-    enableTelemetry: true
-    targetPort: 4000
     env: [
       {
         name: 'DATABASE_URL'
-        value: 'ecto://${postgresAdministratorLogin}:${postgresAdministratorLoginPassword}@${postgres.outputs.fqdn}:5432/${postgresDatabaseName}?ssl=true'
+        value: 'ecto://${postgresAdministratorLogin}:${postgresAdministratorLoginPassword}@${postgres.outputs.fqdn}:5432/${postgresDatabaseName}'
       }
       {
         name: 'PHX_HOST'
@@ -235,12 +228,7 @@ module web 'br/public:avm/ptn/azd/container-app-upsert:0.1.2' = {
         name: 'SECRET_KEY_BASE'
         value: 'eBLbmGlctHX9gKLVdI+SS165KAKfGIf7wpfFBJU7yrxjWy0xAyvxJDI/DfZ29TSw'
       }
-      {
-        name: 'PORT'
-        value: '4000'
-      }
     ]
-    ingressEnabled: true
     identityType: 'UserAssigned'
     identityName: webIdentity.name
     userAssignedIdentityResourceId: webIdentity.outputs.resourceId
