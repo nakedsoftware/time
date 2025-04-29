@@ -176,6 +176,8 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.11.0' = 
     tags: tags
     version: '16'
     highAvailability: 'Disabled'
+    geoRedundantBackup: 'Disabled'
+    publicNetworkAccess: 'Enabled'
   }
 }
 
