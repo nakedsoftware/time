@@ -1,0 +1,19 @@
+{
+    "name": "time",
+    "image": "mcr.microsoft.com/devcontainers/base:2.0.4-noble",
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "24.8.0"
+        }
+    },
+    "remoteUser": "vscode",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "editor.rulers": [80, 100]
+            }
+        }
+    },
+    "postCreateCommand": "bash .devcontainer/post-create.sh"
+}
