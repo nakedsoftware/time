@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-binaries:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -29,11 +29,25 @@ jobs:
         cache: true
         cache-dependency-path: go.sum
 
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2t64-dev
+        # Install cross-compilation toolchain for arm64 if needed
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          # Add arm64 architecture and install arm64 libraries
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y libasound2t64-dev:arm64
+        fi
+
     - name: Build Go binary for linux/${{ matrix.arch }}
       env:
         GOOS: linux
         GOARCH: ${{ matrix.arch }}
-        CGO_ENABLED: 0
+        CGO_ENABLED: 1
+        CC: ${{ matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || 'gcc' }}
       run: |
         mkdir -p out
         go build -o out/time-${{ matrix.arch }} ./cmd/time
@@ -47,7 +61,7 @@ jobs:
 
   build-docker:
     needs: build-binaries
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
