@@ -1,0 +1,18 @@
+{
+    "id": "kdialog",
+    "version": "1.0.0",
+    "name": "KDialog",
+    "description": "Installs kdialog package for creating KDE dialog boxes from shell scripts",
+    "documentationURL": "https://packages.ubuntu.com/noble/kdialog",
+    "keywords": [
+        "kdialog",
+        "kde",
+        "dialog",
+        "gui",
+        "shell"
+    ],
+    "options": {},
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
