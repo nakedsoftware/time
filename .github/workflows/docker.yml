@@ -13,12 +13,11 @@ env:
   IMAGE_NAME: nakedsoftware/time
 
 jobs:
-  build:
+  build-binaries:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -30,11 +29,44 @@ jobs:
         cache: true
         cache-dependency-path: go.sum
 
+    - name: Build Go binary for linux/${{ matrix.arch }}
+      env:
+        GOOS: linux
+        GOARCH: ${{ matrix.arch }}
+        CGO_ENABLED: 0
+      run: |
+        mkdir -p out
+        go build -o out/time-${{ matrix.arch }} ./cmd/time
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-${{ matrix.arch }}
+        path: out/time-${{ matrix.arch }}
+        retention-days: 1
+
+  build-docker:
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download all binary artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: out
+        pattern: binary-*
+        merge-multiple: true
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
     - name: Log in to Container Registry
-      if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -54,31 +86,47 @@ jobs:
           type=semver,pattern={{major}}
           type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Build Go binary for linux/amd64
-      env:
-        GOOS: linux
-        GOARCH: amd64
-        CGO_ENABLED: 0
-      run: |
-        mkdir -p out
-        go build -o out/time-amd64 ./cmd/time
-
-    - name: Build Go binary for linux/arm64
-      env:
-        GOOS: linux
-        GOARCH: arm64
-        CGO_ENABLED: 0
-      run: |
-        mkdir -p out
-        go build -o out/time-arm64 ./cmd/time
-
     - name: Build and push Docker images
       uses: docker/build-push-action@v5
       with:
         context: .
         platforms: linux/amd64,linux/arm64
-        push: ${{ startsWith(github.ref, 'refs/tags/') }}
+        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Comment on PR with container image info
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const tags = `${{ steps.meta.outputs.tags }}`.split('\n').filter(tag => tag.trim() !== '');
+          const prTag = tags.find(tag => tag.includes('pr-${{ github.event.number }}'));
+          
+          if (prTag) {
+            const comment = `## 🐳 Container Image Built
+            
+            Your PR container image has been built and published:
+            
+            \`\`\`
+            ${prTag}
+            \`\`\`
+            
+            **Supported architectures:** linux/amd64, linux/arm64
+            
+            **Usage:**
+            \`\`\`bash
+            docker run --rm ${prTag} --help
+            \`\`\`
+            
+            > 🗑️ This image will be automatically deleted when the PR is closed.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
