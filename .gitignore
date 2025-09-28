@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2025 Naked Software, LLC
 #
 # License Agreement
@@ -92,22 +90,31 @@
 # By using the Software, you acknowledge that you have read this Agreement, 
 # understand it, and agree to be bound by its terms and conditions.
 
-# Feature: ALSA Development Library
-# This script installs libasound2-dev package for ALSA development
+/time
 
-set -e
+# General
+.DS_Store
+__MACOSX/
+.AppleDouble
+.LSOverride
+Icon[
+]
 
-# Update package lists
-echo "Updating package lists..."
-apt-get update
+# Thumbnails
+._*
 
-# Install libasound2-dev
-echo "Installing libasound2-dev..."
-apt-get install -y libasound2-dev
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# Clean up
-echo "Cleaning up..."
-apt-get autoremove -y
-apt-get autoclean
-
-echo "libasound2-dev installation completed successfully!"
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

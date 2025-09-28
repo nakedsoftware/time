@@ -92,8 +92,8 @@
 # By using the Software, you acknowledge that you have read this Agreement, 
 # understand it, and agree to be bound by its terms and conditions.
 
-# Feature: ALSA Development Library
-# This script installs libasound2-dev package for ALSA development
+# Feature: Desktop Notifications (notify-send)
+# This script installs libnotify-bin package providing notify-send command
 
 set -e
 
@@ -101,13 +101,13 @@ set -e
 echo "Updating package lists..."
 apt-get update
 
-# Install libasound2-dev
-echo "Installing libasound2-dev..."
-apt-get install -y libasound2-dev
+# Install libnotify-bin (provides notify-send)
+echo "Installing libnotify-bin..."
+apt-get install -y libnotify-bin
 
 # Clean up
 echo "Cleaning up..."
 apt-get autoremove -y
 apt-get autoclean
 
-echo "libasound2-dev installation completed successfully!"
+echo "notify-send feature installation completed successfully!"

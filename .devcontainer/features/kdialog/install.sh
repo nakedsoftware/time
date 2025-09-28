@@ -92,8 +92,8 @@
 # By using the Software, you acknowledge that you have read this Agreement, 
 # understand it, and agree to be bound by its terms and conditions.
 
-# Feature: ALSA Development Library
-# This script installs libasound2-dev package for ALSA development
+# Feature: KDialog
+# This script installs kdialog package for creating KDE dialog boxes
 
 set -e
 
@@ -101,13 +101,13 @@ set -e
 echo "Updating package lists..."
 apt-get update
 
-# Install libasound2-dev
-echo "Installing libasound2-dev..."
-apt-get install -y libasound2-dev
+# Install kdialog
+echo "Installing kdialog..."
+apt-get install -y kdialog
 
 # Clean up
 echo "Cleaning up..."
 apt-get autoremove -y
 apt-get autoclean
 
-echo "libasound2-dev installation completed successfully!"
+echo "kdialog installation completed successfully!"

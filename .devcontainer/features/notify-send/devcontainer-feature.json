@@ -1,0 +1,17 @@
+{
+    "id": "notify-send",
+    "version": "1.0.0",
+    "name": "Desktop Notifications (notify-send)",
+    "description": "Installs libnotify-bin package providing notify-send command for desktop notifications",
+    "documentationURL": "https://packages.ubuntu.com/noble/libnotify-bin",
+    "keywords": [
+        "notifications",
+        "desktop",
+        "notify-send",
+        "libnotify"
+    ],
+    "options": {},
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
