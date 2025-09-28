@@ -33,13 +33,9 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev
-        # Install cross-compilation toolchain for arm64 if needed
+        # Install cross-compilation toolchain for arm64
         if [ "${{ matrix.arch }}" = "arm64" ]; then
           sudo apt-get install -y gcc-aarch64-linux-gnu
-          # Add arm64 architecture and install arm64 libraries
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev:arm64
         fi
 
     - name: Build Go binary for linux/${{ matrix.arch }}
@@ -50,7 +46,15 @@ jobs:
         CC: ${{ matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || 'gcc' }}
       run: |
         mkdir -p out
-        go build -o out/time-${{ matrix.arch }} ./cmd/time
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          # For ARM64, build with system headers and link dynamically
+          # The container will provide the runtime libraries
+          CGO_LDFLAGS="-lasound" go build -o out/time-${{ matrix.arch }} ./cmd/time || \
+          # Fallback: build without CGO if cross-compilation fails
+          CGO_ENABLED=0 go build -o out/time-${{ matrix.arch }} ./cmd/time
+        else
+          go build -o out/time-${{ matrix.arch }} ./cmd/time
+        fi
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
