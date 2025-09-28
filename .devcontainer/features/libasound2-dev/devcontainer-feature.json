@@ -1,0 +1,17 @@
+{
+    "id": "libasound2-dev",
+    "version": "1.0.0",
+    "name": "ALSA Development Library",
+    "description": "Installs libasound2-dev package for ALSA (Advanced Linux Sound Architecture) development",
+    "documentationURL": "https://packages.ubuntu.com/noble/libasound2-dev",
+    "keywords": [
+        "alsa",
+        "audio",
+        "sound",
+        "development"
+    ],
+    "options": {},
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
