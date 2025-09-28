@@ -96,7 +96,6 @@
 .vscode/
 cmd/
 internal/
-out/
 .dockerignore
 .gitattributes
 .gitignore
