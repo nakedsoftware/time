@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-binaries:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -32,25 +32,14 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        # Check what ALSA dev packages are available and install the correct one
-        if apt-cache search --names-only '^libasound2t64-dev$' | grep -q libasound2t64-dev; then
-          echo "Installing libasound2t64-dev"
-          sudo apt-get install -y libasound2t64-dev
-          ALSA_DEV_PKG="libasound2t64-dev"
-        else
-          echo "Installing libasound2-dev"
-          sudo apt-get install -y libasound2-dev
-          ALSA_DEV_PKG="libasound2-dev"
-        fi
-        
+        sudo apt-get install -y libasound2-dev
         # Install cross-compilation toolchain for arm64 if needed
         if [ "${{ matrix.arch }}" = "arm64" ]; then
           sudo apt-get install -y gcc-aarch64-linux-gnu
           # Add arm64 architecture and install arm64 libraries
           sudo dpkg --add-architecture arm64
           sudo apt-get update
-          # Install the same package variant for arm64
-          sudo apt-get install -y ${ALSA_DEV_PKG}:arm64
+          sudo apt-get install -y libasound2-dev:arm64
         fi
 
     - name: Build Go binary for linux/${{ matrix.arch }}
@@ -72,7 +61,7 @@ jobs:
 
   build-docker:
     needs: build-binaries
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
