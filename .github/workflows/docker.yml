@@ -14,10 +14,14 @@ env:
 
 jobs:
   build-binaries:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -32,29 +36,21 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libasound2-dev
-        # Install cross-compilation toolchain for arm64
-        if [ "${{ matrix.arch }}" = "arm64" ]; then
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-        fi
+        # Try to install the time64 package first, fall back to the standard package
+        sudo apt-get install -y libasound2t64-dev || sudo apt-get install -y libasound2-dev
 
     - name: Build Go binary for linux/${{ matrix.arch }}
       env:
         GOOS: linux
         GOARCH: ${{ matrix.arch }}
         CGO_ENABLED: 1
-        CC: ${{ matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || 'gcc' }}
       run: |
         mkdir -p out
-        if [ "${{ matrix.arch }}" = "arm64" ]; then
-          # For ARM64, build with system headers and link dynamically
-          # The container will provide the runtime libraries
-          CGO_LDFLAGS="-lasound" go build -o out/time-${{ matrix.arch }} ./cmd/time || \
-          # Fallback: build without CGO if cross-compilation fails
-          CGO_ENABLED=0 go build -o out/time-${{ matrix.arch }} ./cmd/time
-        else
-          go build -o out/time-${{ matrix.arch }} ./cmd/time
-        fi
+        echo "Building native ${{ matrix.arch }} binary with CGO..."
+        go build -o out/time-${{ matrix.arch }} ./cmd/time
+        echo "✅ Native ${{ matrix.arch }} build completed"
+        echo "Binary info:"
+        file out/time-${{ matrix.arch }} || echo "File command not available"
 
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
@@ -65,7 +61,7 @@ jobs:
 
   build-docker:
     needs: build-binaries
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
