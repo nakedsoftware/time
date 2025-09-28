@@ -66,6 +66,7 @@ jobs:
       contents: read
       packages: write
       issues: write
+      pull-requests: write
       
     steps:
     - name: Checkout repository
@@ -139,10 +140,16 @@ jobs:
             
             > 🗑️ This image will be automatically deleted when the PR is closed.`;
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              console.log('✅ PR comment created successfully');
+            } catch (error) {
+              console.log('⚠️ Could not create PR comment:', error.message);
+              console.log('This is usually due to permissions or repository settings, but the container build was successful.');
+            }
           }
