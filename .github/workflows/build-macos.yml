@@ -114,7 +114,9 @@ jobs:
         
         # Verify the signature
         codesign --verify --verbose=2 dist/time-macos-arm64
-        spctl --assess --verbose=2 dist/time-macos-arm64
+        
+        # Assess the signed executable (use --type exec for command-line tools)
+        spctl --assess --type exec --verbose=2 dist/time-macos-arm64
 
     - name: Notarize binary
       env:
@@ -140,7 +142,7 @@ jobs:
         
         # Verify notarization
         echo "Verifying notarization..."
-        spctl --assess --verbose=2 time-macos-arm64
+        spctl --assess --type exec --verbose=2 time-macos-arm64
         
         # Clean up notarization zip
         rm time-macos-arm64-notarize.zip
