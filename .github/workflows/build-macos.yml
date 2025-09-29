@@ -124,28 +124,26 @@ jobs:
         APPLE_NOTARIZATION_APP_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        # Create a zip file for notarization
         cd dist
-        zip time-macos-arm64-notarize.zip time-macos-arm64
         
-        # Submit for notarization
-        echo "Submitting for notarization..."
-        xcrun notarytool submit time-macos-arm64-notarize.zip \
+        # Submit the binary directly for notarization
+        echo "Submitting binary for notarization..."
+        xcrun notarytool submit time-macos-arm64 \
           --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
           --password "$APPLE_NOTARIZATION_APP_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
           --wait
         
-        # Staple the notarization (for zip files, we staple the binary)
+        # Staple the notarization ticket to the binary
         echo "Stapling notarization..."
         xcrun stapler staple time-macos-arm64
         
-        # Verify notarization
+        # Verify the notarized binary
         echo "Verifying notarization..."
+        codesign --verify --verbose=2 time-macos-arm64
         spctl --assess --type exec --verbose=2 time-macos-arm64
         
-        # Clean up notarization zip
-        rm time-macos-arm64-notarize.zip
+        echo "Notarization and stapling completed successfully"
     
     - name: Create archive
       run: |
