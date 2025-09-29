@@ -46,7 +46,7 @@ jobs:
       env:
         GOOS: darwin
         GOARCH: arm64
-        CGO_ENABLED: 0
+        CGO_ENABLED: 1
       run: |
         mkdir -p dist
         go build -ldflags="-s -w" -o dist/time-macos-arm64 ./cmd/time
