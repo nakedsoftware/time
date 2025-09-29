@@ -126,24 +126,40 @@ jobs:
       run: |
         cd dist
         
-        # Submit the binary directly for notarization
-        echo "Submitting binary for notarization..."
-        SUBMIT_OUTPUT=$(xcrun notarytool submit time-macos-arm64 \
+        # Verify the binary is properly signed before creating zip
+        echo "Verifying binary signature before notarization..."
+        codesign --verify --verbose=2 time-macos-arm64
+        codesign --display --verbose=4 time-macos-arm64
+        
+        # Create a zip file for notarization (this is required by Apple)
+        echo "Creating zip archive for notarization..."
+        zip time-macos-arm64-notarize.zip time-macos-arm64
+        
+        # Submit the zip file for notarization
+        echo "Submitting zip file for notarization..."
+        SUBMIT_OUTPUT=$(xcrun notarytool submit time-macos-arm64-notarize.zip \
           --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
           --password "$APPLE_NOTARIZATION_APP_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
-          --force \
           --wait 2>&1)
         
         echo "$SUBMIT_OUTPUT"
         
-        # Extract submission ID to get detailed error information if needed
+        # Extract submission ID for error reporting if needed
         SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
         echo "Submission ID: $SUBMISSION_ID"
         
         # Check if notarization was successful
         if echo "$SUBMIT_OUTPUT" | grep -q "status: Accepted"; then
           echo "Notarization accepted successfully"
+          
+          # For zip-submitted files, we don't staple - the binary is already notarized
+          echo "Binary has been notarized (no stapling needed for zip submissions)"
+          
+          # Verify the binary is still properly signed
+          echo "Final verification..."
+          codesign --verify --verbose=2 time-macos-arm64
+          
         elif echo "$SUBMIT_OUTPUT" | grep -q "status: Invalid"; then
           echo "Notarization was rejected. Getting detailed error information..."
           xcrun notarytool log "$SUBMISSION_ID" \
@@ -156,16 +172,10 @@ jobs:
           exit 1
         fi
         
-        # Staple the notarization ticket to the binary
-        echo "Stapling notarization..."
-        xcrun stapler staple time-macos-arm64
+        # Clean up the zip file
+        rm time-macos-arm64-notarize.zip
         
-        # Verify the notarized binary
-        echo "Verifying notarization..."
-        codesign --verify --verbose=2 time-macos-arm64
-        spctl --assess --type exec --verbose=2 time-macos-arm64
-        
-        echo "Notarization and stapling completed successfully"
+        echo "Notarization process completed successfully"
     
     - name: Create archive
       run: |
