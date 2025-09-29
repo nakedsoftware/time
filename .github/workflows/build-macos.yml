@@ -115,8 +115,8 @@ jobs:
         # Verify the signature
         codesign --verify --verbose=2 dist/time-macos-arm64
         
-        # Assess the signed executable (use --type exec for command-line tools)
-        spctl --assess --type exec --verbose=2 dist/time-macos-arm64
+        # Note: spctl assessment will be done after notarization
+        echo "Code signing completed successfully"
 
     - name: Notarize binary
       env:
