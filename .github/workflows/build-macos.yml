@@ -1,0 +1,123 @@
+name: Build macOS (ARM64)
+
+on:
+  repository_dispatch:
+    types: [build-macos-command]
+
+jobs:
+  build:
+    if: github.event.client_payload.slash_command.command == 'build-macos'
+    runs-on: macos-latest
+    
+    steps:
+    - name: Add reaction
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+        reactions: eyes
+    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.event.client_payload.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.client_payload.pull_request.head.ref }}
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+    
+    - name: Get version info
+      id: version
+      run: |
+        # Get the short commit SHA
+        SHORT_SHA=$(echo ${{ github.event.client_payload.pull_request.head.sha }} | cut -c1-7)
+        # Get the PR number
+        PR_NUMBER=${{ github.event.client_payload.pull_request.number }}
+        # Create version string
+        VERSION="pr-${PR_NUMBER}-${SHORT_SHA}"
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+        echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+    
+    - name: Build for macOS ARM64
+      env:
+        GOOS: darwin
+        GOARCH: arm64
+        CGO_ENABLED: 0
+      run: |
+        mkdir -p dist
+        go build -ldflags="-s -w" -o dist/time-macos-arm64 ./cmd/time
+        
+        # Verify the binary was built correctly
+        file dist/time-macos-arm64
+        ls -la dist/
+    
+    - name: Create archive
+      run: |
+        cd dist
+        tar -czf time-macos-arm64-${{ steps.version.outputs.version }}.tar.gz time-macos-arm64
+        ls -la
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: time-macos-arm64-${{ steps.version.outputs.version }}
+        path: dist/time-macos-arm64-${{ steps.version.outputs.version }}.tar.gz
+        retention-days: 30
+    
+    - name: Comment PR with download link
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        issue-number: ${{ github.event.client_payload.pull_request.number }}
+        body: |
+          ## ✅ macOS ARM64 Build Complete
+          
+          **Build Details:**
+          - **Version:** `${{ steps.version.outputs.version }}`
+          - **Commit:** `${{ steps.version.outputs.short_sha }}`
+          - **Architecture:** macOS ARM64 (Apple Silicon)
+          
+          **Download:** 
+          🍎 [time-macos-arm64-${{ steps.version.outputs.version }}.tar.gz](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          > **Note:** Click the link above, then scroll down to the "Artifacts" section to download the build.
+          
+          **Usage after download:**
+          ```bash
+          tar -xzf time-macos-arm64-${{ steps.version.outputs.version }}.tar.gz
+          ./time-macos-arm64 --help
+          ```
+          
+          ---
+          *Build triggered by `/build-macos` command*
+    
+    - name: Add success reaction
+      if: success()
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+        reactions: rocket
+    
+    - name: Add failure reaction
+      if: failure()
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+        reactions: confused
+    
+    - name: Comment on build failure
+      if: failure()
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        issue-number: ${{ github.event.client_payload.pull_request.number }}
+        body: |
+          ## ❌ macOS ARM64 Build Failed
+          
+          The build failed for commit `${{ steps.version.outputs.short_sha }}`. 
+          Please check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+          
+          ---
+          *Build triggered by `/build-macos` command*
