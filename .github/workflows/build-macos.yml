@@ -128,12 +128,33 @@ jobs:
         
         # Submit the binary directly for notarization
         echo "Submitting binary for notarization..."
-        xcrun notarytool submit time-macos-arm64 \
+        SUBMIT_OUTPUT=$(xcrun notarytool submit time-macos-arm64 \
           --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
           --password "$APPLE_NOTARIZATION_APP_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
           --force \
-          --wait
+          --wait 2>&1)
+        
+        echo "$SUBMIT_OUTPUT"
+        
+        # Extract submission ID to get detailed error information if needed
+        SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+        echo "Submission ID: $SUBMISSION_ID"
+        
+        # Check if notarization was successful
+        if echo "$SUBMIT_OUTPUT" | grep -q "status: Accepted"; then
+          echo "Notarization accepted successfully"
+        elif echo "$SUBMIT_OUTPUT" | grep -q "status: Invalid"; then
+          echo "Notarization was rejected. Getting detailed error information..."
+          xcrun notarytool log "$SUBMISSION_ID" \
+            --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
+            --password "$APPLE_NOTARIZATION_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+          exit 1
+        else
+          echo "Unknown notarization status"
+          exit 1
+        fi
         
         # Staple the notarization ticket to the binary
         echo "Stapling notarization..."
