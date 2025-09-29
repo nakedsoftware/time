@@ -99,8 +99,10 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
-RUN groupadd -r nakedtime && useradd -r -g nakedtime nakedtime
+# Create a non-root user with home directory
+RUN groupadd -r nakedtime && \
+    useradd -r -g nakedtime -d /home/nakedtime -m nakedtime && \
+    chown -R nakedtime:nakedtime /home/nakedtime
 
 # Set working directory
 WORKDIR /opt/nakedtime
