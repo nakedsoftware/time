@@ -54,6 +54,96 @@ jobs:
         # Verify the binary was built correctly
         file dist/time-macos-arm64
         ls -la dist/
+
+    - name: Create entitlements file
+      run: |
+        cat > dist/entitlements.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>com.apple.security.cs.allow-jit</key>
+            <true/>
+            <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+            <true/>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+            <key>com.apple.security.device.audio-output</key>
+            <true/>
+            <key>com.apple.security.files.user-selected.read-write</key>
+            <true/>
+            <key>com.apple.security.network.client</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+
+    - name: Import Apple certificates
+      env:
+        APPLE_CERTIFICATE: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE }}
+        APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      run: |
+        # Create temporary keychain
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+        
+        # Create and unlock keychain
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        
+        # Import certificate
+        echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+        security import certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+        security list-keychain -d user -s "$KEYCHAIN_PATH"
+        
+        # Clean up certificate file
+        rm certificate.p12
+
+    - name: Sign binary
+      env:
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      run: |
+        # Sign the binary
+        codesign --force --verify --verbose --sign "Developer ID Application: Naked Software ($APPLE_TEAM_ID)" \
+          --entitlements dist/entitlements.plist \
+          --identifier "software.naked.time" \
+          --timestamp \
+          --options runtime \
+          dist/time-macos-arm64
+        
+        # Verify the signature
+        codesign --verify --verbose=2 dist/time-macos-arm64
+        spctl --assess --verbose=2 dist/time-macos-arm64
+
+    - name: Notarize binary
+      env:
+        APPLE_NOTARIZATION_APPLE_ID: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID }}
+        APPLE_NOTARIZATION_APP_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      run: |
+        # Create a zip file for notarization
+        cd dist
+        zip time-macos-arm64-notarize.zip time-macos-arm64
+        
+        # Submit for notarization
+        echo "Submitting for notarization..."
+        xcrun notarytool submit time-macos-arm64-notarize.zip \
+          --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
+          --password "$APPLE_NOTARIZATION_APP_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --wait
+        
+        # Staple the notarization (for zip files, we staple the binary)
+        echo "Stapling notarization..."
+        xcrun stapler staple time-macos-arm64
+        
+        # Verify notarization
+        echo "Verifying notarization..."
+        spctl --assess --verbose=2 time-macos-arm64
+        
+        # Clean up notarization zip
+        rm time-macos-arm64-notarize.zip
     
     - name: Create archive
       run: |
