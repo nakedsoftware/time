@@ -3,6 +3,7 @@ name: Build macOS (ARM64)
 on:
   repository_dispatch:
     types: [build-macos-command]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,11 +18,12 @@ jobs:
         reactions: eyes
     
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         repository: ${{ github.event.client_payload.pull_request.head.repo.full_name }}
         ref: ${{ github.event.client_payload.pull_request.head.ref }}
+        lfs: true
     
     - name: Set up Go
       uses: actions/setup-go@v5
