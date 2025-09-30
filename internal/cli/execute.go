@@ -104,3 +104,12 @@ import "context"
 func Execute(ctx context.Context) error {
 	return rootCommand.ExecuteContext(ctx)
 }
+
+func init() {
+	rootCommand.AddCommand(activityCommand)
+	rootCommand.AddCommand(pomodoroCommand)
+
+	activityCommand.AddCommand(addActivityCommand)
+
+	pomodoroCommand.AddCommand(startPomodoroCommand)
+}
