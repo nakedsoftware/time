@@ -90,7 +90,7 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package pomodoro
 
 import (
 	"context"
@@ -99,13 +99,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	appcontext "github.com/nakedsoftware/time/internal/context"
 	"github.com/nakedsoftware/time/internal/database"
 	"github.com/nakedsoftware/time/internal/pomodoro"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-var startPomodoroCommand = &cobra.Command{
+var StartCommand = &cobra.Command{
 	Use:   "start",
 	Short: "Starts a pomodoro",
 	Long: `
@@ -116,7 +117,7 @@ completes, an alarm will sound and the pomodoro will be recorded as being
 completed.
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db := getDB(cmd)
+		db := appcontext.GetDB(cmd)
 
 		id, err := startPomodoro(cmd.Context(), db)
 		if err != nil {

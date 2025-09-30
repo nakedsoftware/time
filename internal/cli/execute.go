@@ -92,7 +92,12 @@
 
 package cli
 
-import "context"
+import (
+	"context"
+
+	"github.com/nakedsoftware/time/internal/cli/activity"
+	"github.com/nakedsoftware/time/internal/cli/pomodoro"
+)
 
 // Execute starts the program.
 //
@@ -109,7 +114,8 @@ func init() {
 	rootCommand.AddCommand(activityCommand)
 	rootCommand.AddCommand(pomodoroCommand)
 
-	activityCommand.AddCommand(addActivityCommand)
+	activityCommand.AddCommand(activity.AddCommand)
+	activityCommand.AddCommand(activity.ListCommand)
 
-	pomodoroCommand.AddCommand(startPomodoroCommand)
+	pomodoroCommand.AddCommand(pomodoro.StartCommand)
 }

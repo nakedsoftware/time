@@ -90,17 +90,4 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
-
-import (
-	"github.com/spf13/cobra"
-	"gorm.io/gorm"
-)
-
-type contextKey string
-
-const databaseContextKey contextKey = "db"
-
-func getDB(cmd *cobra.Command) *gorm.DB {
-	return cmd.Context().Value(databaseContextKey).(*gorm.DB)
-}
+package ${GO_PACKAGE_NAME}

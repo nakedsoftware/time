@@ -90,43 +90,40 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package activity
 
 import (
-	"math"
+	"fmt"
 
-	"github.com/google/uuid"
+	appcontext "github.com/nakedsoftware/time/internal/context"
 	"github.com/nakedsoftware/time/internal/database"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-var addActivityCommand = &cobra.Command{
-	Use:   "add title",
-	Short: "Add an activity to the Activity Inventory",
+var ListCommand = &cobra.Command{
+	Use:   "list",
+	Short: "List Activity Inventory activities",
 	Long: `
-The activity add command adds an activity to the Activity Inventory. The
-activity is more a reminder of work that you need to perform either for a
-project or an important task that you want to complete.
+The list command lets you list all activities that are in the Activity
+Inventory. By default, the activities are ordered by priority and activities
+with the same priority will be ordered by their creation date. By default,
+only non-completed activities will be returned.
 `,
-	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db := getDB(cmd)
-
-		title := args[0]
-		id, err := uuid.NewV7()
+		db := appcontext.GetDB(cmd)
+		activities, err := gorm.G[database.Activity](db).
+			Where("completed = ?", false).
+			Order("priority, created_at").
+			Find(cmd.Context())
 		if err != nil {
 			return err
 		}
 
-		activity := &database.Activity{
-			Model: database.Model{
-				ID: id,
-			},
-			Title:     title,
-			Priority:  math.MaxInt,
-			Completed: false,
+		for _, activity := range activities {
+			fmt.Printf("%s\t%s\n", activity.ID.String(), activity.Title)
 		}
-		return gorm.G[database.Activity](db).Create(cmd.Context(), activity)
+
+		return nil
 	},
 }

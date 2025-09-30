@@ -90,58 +90,44 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package activity
 
 import (
-	"os"
-	"path"
+	"math"
 
+	"github.com/google/uuid"
 	appcontext "github.com/nakedsoftware/time/internal/context"
 	"github.com/nakedsoftware/time/internal/database"
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
-var rootCommand = &cobra.Command{
-	Use:     "time",
-	Version: "0.0.1",
-	Short:   "Naked Time is a time management and time tracking application.",
+var AddCommand = &cobra.Command{
+	Use:   "add title",
+	Short: "Add an activity to the Activity Inventory",
 	Long: `
-Naked Time is a time management and time tracking application that helps you
-to focus on completing important tasks and analyzing how you are using your
-time. Naked Time implements multiple tools to help you to improve your time
-management skills and productivity. Using Naked Time, you can achieve better
-focus in managing and tracking how much time you are working on activities,
-using your time to focus on achieving value and completing important
-activities, and analyzing if you are using your time effectively or can make
-improvements in your estimation and time management skills.
+The activity add command adds an activity to the Activity Inventory. The
+activity is more a reminder of work that you need to perform either for a
+project or an important task that you want to complete.
 `,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return createDatabase(cmd)
-	},
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Usage()
+		db := appcontext.GetDB(cmd)
+
+		title := args[0]
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+
+		activity := &database.Activity{
+			Model: database.Model{
+				ID: id,
+			},
+			Title:     title,
+			Priority:  math.MaxInt,
+			Completed: false,
+		}
+		return gorm.G[database.Activity](db).Create(cmd.Context(), activity)
 	},
-}
-
-func createDatabase(cmd *cobra.Command) error {
-	homePath, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	dbDir := path.Join(homePath, ".nakedtime")
-	dbPath := path.Join(dbDir, "time.db")
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		return err
-	}
-
-	db, err := database.NewDB(dbPath)
-	if err != nil {
-		return err
-	}
-
-	ctx := appcontext.WithDB(cmd.Context(), db)
-	cmd.SetContext(ctx)
-
-	return nil
 }
