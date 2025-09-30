@@ -92,6 +92,41 @@
 
 package cli
 
-type contextKey string
+import (
+	"math"
 
-const databaseContextKey contextKey = "db"
+	"github.com/google/uuid"
+	"github.com/nakedsoftware/time/internal/database"
+	"github.com/spf13/cobra"
+	"gorm.io/gorm"
+)
+
+var addActivityCommand = &cobra.Command{
+	Use:   "add title",
+	Short: "Add an activity to the Activity Inventory",
+	Long: `
+The activity add command adds an activity to the Activity Inventory. The
+activity is more a reminder of work that you need to perform either for a
+project or an important task that you want to complete.
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db := getDB(cmd)
+
+		title := args[0]
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+
+		activity := &database.Activity{
+			Model: database.Model{
+				ID: id,
+			},
+			Title:     title,
+			Priority:  math.MaxInt,
+			Completed: false,
+		}
+		return gorm.G[database.Activity](db).Create(cmd.Context(), activity)
+	},
+}

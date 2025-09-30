@@ -90,23 +90,94 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package database
+package cli
 
 import (
-	"gorm.io/driver/sqlite"
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/nakedsoftware/time/internal/database"
+	"github.com/nakedsoftware/time/internal/pomodoro"
+	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-func NewDB(path string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+var startPomodoroCommand = &cobra.Command{
+	Use:   "start",
+	Short: "Starts a pomodoro",
+	Long: `
+The start command will start a pomodoro to allow you to focus on completing
+an important activity. The command will present a timer for 25 minutes during
+which you can focus on completing the work in front of you. After the pomodoro
+completes, an alarm will sound and the pomodoro will be recorded as being
+completed.
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db := getDB(cmd)
+
+		id, err := startPomodoro(cmd.Context(), db)
+		if err != nil {
+			return err
+		}
+
+		completed, err := pomodoro.Run(cmd.Context())
+		if err != nil {
+			return err
+		}
+
+		return endPomodoro(cmd.Context(), db, id, completed)
+	},
+}
+
+func startPomodoro(
+	ctx context.Context,
+	db *gorm.DB,
+) (uuid.UUID, error) {
+	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return id, err
 	}
 
-	err = db.AutoMigrate(&Pomodoro{}, &Activity{})
+	p := &database.Pomodoro{
+		Model: database.Model{
+			ID: id,
+		},
+		StartTime: time.Now(),
+	}
+	err = gorm.G[database.Pomodoro](db).Create(ctx, p)
+	return id, err
+}
+
+func endPomodoro(
+	ctx context.Context,
+	db *gorm.DB,
+	id uuid.UUID,
+	completed bool,
+) error {
+	rowsAffected, err := gorm.G[database.Pomodoro](db).
+		Where("id = ?", id).
+		Updates(
+			ctx,
+			database.Pomodoro{
+				EndTime: sql.NullTime{
+					Time:  time.Now(),
+					Valid: true,
+				},
+				Completed: completed,
+			},
+		)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return db, nil
+	if rowsAffected == 0 {
+		return fmt.Errorf(
+			"pomodoro not found in the database to be closed",
+		)
+	}
+
+	return nil
 }

@@ -90,23 +90,17 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package database
+package cli
 
 import (
-	"gorm.io/driver/sqlite"
+	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-func NewDB(path string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
+type contextKey string
 
-	err = db.AutoMigrate(&Pomodoro{}, &Activity{})
-	if err != nil {
-		return nil, err
-	}
+const databaseContextKey contextKey = "db"
 
-	return db, nil
+func getDB(cmd *cobra.Command) *gorm.DB {
+	return cmd.Context().Value(databaseContextKey).(*gorm.DB)
 }

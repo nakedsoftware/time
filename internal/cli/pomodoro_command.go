@@ -90,23 +90,22 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package database
+package cli
 
-import (
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-)
+import "github.com/spf13/cobra"
 
-func NewDB(path string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.AutoMigrate(&Pomodoro{}, &Activity{})
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
+var pomodoroCommand = &cobra.Command{
+	Use:   "pomodoro",
+	Short: "Manage pomodoros",
+	Long: `
+The pomodoros command provides subcommands for performing and managing
+pomodoros. A pomodoro is a 25 minute block of time where you can focus on
+completing an activity that you are working on. By breaking up your work
+into pomodoros, you can focus in shorter increments with small breaks between
+each increment, track your progress, and monitor and improve your efficiency
+in how you complete activities.
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Usage()
+	},
 }
