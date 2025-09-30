@@ -113,7 +113,7 @@ only non-completed activities will be returned.
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db := appcontext.GetDB(cmd)
 		activities, err := gorm.G[database.Activity](db).
-			Where("completed = 0").
+			Where("completed = ?", false).
 			Order("priority, created_at").
 			Find(cmd.Context())
 		if err != nil {
