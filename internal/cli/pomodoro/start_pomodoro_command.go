@@ -90,43 +90,95 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package pomodoro
 
 import (
-	"math"
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	appcontext "github.com/nakedsoftware/time/internal/context"
 	"github.com/nakedsoftware/time/internal/database"
+	"github.com/nakedsoftware/time/internal/pomodoro"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-var addActivityCommand = &cobra.Command{
-	Use:   "add title",
-	Short: "Add an activity to the Activity Inventory",
+var StartCommand = &cobra.Command{
+	Use:   "start",
+	Short: "Starts a pomodoro",
 	Long: `
-The activity add command adds an activity to the Activity Inventory. The
-activity is more a reminder of work that you need to perform either for a
-project or an important task that you want to complete.
+The start command will start a pomodoro to allow you to focus on completing
+an important activity. The command will present a timer for 25 minutes during
+which you can focus on completing the work in front of you. After the pomodoro
+completes, an alarm will sound and the pomodoro will be recorded as being
+completed.
 `,
-	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db := getDB(cmd)
+		db := appcontext.GetDB(cmd)
 
-		title := args[0]
-		id, err := uuid.NewV7()
+		id, err := startPomodoro(cmd.Context(), db)
 		if err != nil {
 			return err
 		}
 
-		activity := &database.Activity{
-			Model: database.Model{
-				ID: id,
-			},
-			Title:     title,
-			Priority:  math.MaxInt,
-			Completed: false,
+		completed, err := pomodoro.Run(cmd.Context())
+		if err != nil {
+			return err
 		}
-		return gorm.G[database.Activity](db).Create(cmd.Context(), activity)
+
+		return endPomodoro(cmd.Context(), db, id, completed)
 	},
+}
+
+func startPomodoro(
+	ctx context.Context,
+	db *gorm.DB,
+) (uuid.UUID, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return id, err
+	}
+
+	p := &database.Pomodoro{
+		Model: database.Model{
+			ID: id,
+		},
+		StartTime: time.Now(),
+	}
+	err = gorm.G[database.Pomodoro](db).Create(ctx, p)
+	return id, err
+}
+
+func endPomodoro(
+	ctx context.Context,
+	db *gorm.DB,
+	id uuid.UUID,
+	completed bool,
+) error {
+	rowsAffected, err := gorm.G[database.Pomodoro](db).
+		Where("id = ?", id).
+		Updates(
+			ctx,
+			database.Pomodoro{
+				EndTime: sql.NullTime{
+					Time:  time.Now(),
+					Valid: true,
+				},
+				Completed: completed,
+			},
+		)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf(
+			"pomodoro not found in the database to be closed",
+		)
+	}
+
+	return nil
 }

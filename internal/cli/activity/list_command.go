@@ -90,17 +90,40 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package activity
 
 import (
+	"fmt"
+
+	appcontext "github.com/nakedsoftware/time/internal/context"
+	"github.com/nakedsoftware/time/internal/database"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-type contextKey string
+var ListCommand = &cobra.Command{
+	Use:   "list",
+	Short: "List Activity Inventory activities",
+	Long: `
+The list command lets you list all activities that are in the Activity
+Inventory. By default, the activities are ordered by priority and activities
+with the same priority will be ordered by their creation date. By default,
+only non-completed activities will be returned.
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db := appcontext.GetDB(cmd)
+		activities, err := gorm.G[database.Activity](db).
+			Where("completed = 0").
+			Order("priority, created_at").
+			Find(cmd.Context())
+		if err != nil {
+			return err
+		}
 
-const databaseContextKey contextKey = "db"
+		for _, activity := range activities {
+			fmt.Printf("%s\t%s\n", activity.ID.String(), activity.Title)
+		}
 
-func getDB(cmd *cobra.Command) *gorm.DB {
-	return cmd.Context().Value(databaseContextKey).(*gorm.DB)
+		return nil
+	},
 }
