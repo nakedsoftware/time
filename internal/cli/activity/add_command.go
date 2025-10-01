@@ -93,6 +93,7 @@
 package activity
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/google/uuid"
@@ -128,6 +129,13 @@ project or an important task that you want to complete.
 			Priority:  math.MaxInt,
 			Completed: false,
 		}
-		return gorm.G[database.Activity](db).Create(cmd.Context(), activity)
+		err = gorm.G[database.Activity](db).Create(cmd.Context(), activity)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%s\n", id.String())
+
+		return nil
 	},
 }

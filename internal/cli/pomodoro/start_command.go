@@ -93,9 +93,13 @@
 package pomodoro
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -107,7 +111,7 @@ import (
 )
 
 var StartCommand = &cobra.Command{
-	Use:   "start",
+	Use:   "start activity-id",
 	Short: "Starts a pomodoro",
 	Long: `
 The start command will start a pomodoro to allow you to focus on completing
@@ -116,10 +120,29 @@ which you can focus on completing the work in front of you. After the pomodoro
 completes, an alarm will sound and the pomodoro will be recorded as being
 completed.
 `,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var (
+			activityIDStr string
+			err           error
+		)
+		if len(args) > 0 {
+			activityIDStr = args[0]
+		} else {
+			activityIDStr, err = readActivityID(cmd.Context())
+			if err != nil {
+				return err
+			}
+		}
+
+		activityID, err := uuid.Parse(activityIDStr)
+		if err != nil {
+			return err
+		}
+
 		db := appcontext.GetDB(cmd)
 
-		id, err := startPomodoro(cmd.Context(), db)
+		id, err := startPomodoro(cmd.Context(), db, activityID)
 		if err != nil {
 			return err
 		}
@@ -133,9 +156,50 @@ completed.
 	},
 }
 
+func readActivityID(ctx context.Context) (string, error) {
+	// readActivityID will attempt to read the activity ID from stdin. A
+	// timeout context is used to avoid blocking indefinitely if no data is
+	// available on stdin.
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
+	defer cancel()
+
+	done := make(chan string, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			done <- strings.TrimSpace(scanner.Text())
+		} else {
+			if err := scanner.Err(); err != nil {
+				errChan <- err
+			} else {
+				errChan <- io.EOF
+			}
+		}
+	}()
+
+	select {
+	case activityIDStr := <-done:
+		return activityIDStr, nil
+
+	case err := <-errChan:
+		if err == io.EOF {
+			return "", fmt.Errorf("the activity ID for the pomodoro is required")
+		}
+
+		return "", err
+
+	case <-ctx.Done():
+		return "", fmt.Errorf("the activity ID for the pomodoro is required")
+	}
+}
+
 func startPomodoro(
 	ctx context.Context,
 	db *gorm.DB,
+	activityID uuid.UUID,
 ) (uuid.UUID, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -146,7 +210,8 @@ func startPomodoro(
 		Model: database.Model{
 			ID: id,
 		},
-		StartTime: time.Now(),
+		ActivityID: activityID,
+		StartTime:  time.Now(),
 	}
 	err = gorm.G[database.Pomodoro](db).Create(ctx, p)
 	return id, err

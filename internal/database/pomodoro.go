@@ -95,12 +95,15 @@ package database
 import (
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Pomodoro struct {
 	Model
 
-	StartTime time.Time
-	EndTime   sql.NullTime
-	Completed bool
+	ActivityID uuid.UUID `gorm:"index"`
+	StartTime  time.Time
+	EndTime    sql.NullTime
+	Completed  bool
 }
