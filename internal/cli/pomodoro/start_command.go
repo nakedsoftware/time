@@ -161,7 +161,8 @@ func readActivityID(ctx context.Context) (string, error) {
 	// timeout context is used to avoid blocking indefinitely if no data is
 	// available on stdin.
 
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	const timeout = 1 * time.Second
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	done := make(chan string, 1)
