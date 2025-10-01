@@ -98,4 +98,5 @@ type Activity struct {
 	Title     string
 	Priority  int
 	Completed bool
+	Pomodoros []Pomodoro
 }
