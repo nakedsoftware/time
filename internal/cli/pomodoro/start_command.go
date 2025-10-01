@@ -186,13 +186,13 @@ func readActivityID(ctx context.Context) (string, error) {
 
 	case err := <-errChan:
 		if err == io.EOF {
-			return "", fmt.Errorf("the activity ID for the pomodoro is required")
+			return "", fmt.Errorf("no input provided for activity ID (EOF)")
 		}
 
 		return "", err
 
 	case <-ctx.Done():
-		return "", fmt.Errorf("the activity ID for the pomodoro is required")
+		return "", fmt.Errorf("timed out waiting for activity ID input")
 	}
 }
 
