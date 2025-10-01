@@ -9,7 +9,8 @@ jobs:
     if: >
       github.event.issue.pull_request &&
       (contains(github.event.comment.body, '/build-macos') ||
-       contains(github.event.comment.body, '/build-windows'))
+       contains(github.event.comment.body, '/build-windows') ||
+       contains(github.event.comment.body, '/build-linux'))
     runs-on: ubuntu-latest
     steps:
       - name: Slash Command Dispatch
@@ -19,6 +20,7 @@ jobs:
           commands: |
             build-macos
             build-windows
+            build-linux
           permission: write
           issue-type: pull-request
           repository: ${{ github.repository }}
