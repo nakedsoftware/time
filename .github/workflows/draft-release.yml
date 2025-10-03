@@ -399,10 +399,16 @@ jobs:
             # Upload new assets
             gh release upload "${TAG}" artifacts/* --clobber
             
-            # Update release notes
+            # Generate new release notes
+            NOTES=$(gh api repos/:owner/:repo/releases/generate-notes \
+              -f tag_name="${TAG}" \
+              -f target_commitish="${GITHUB_REF#refs/heads/}" \
+              --jq .body)
+            
+            # Update release with new notes
             gh release edit "${TAG}" \
               --draft \
-              --generate-notes \
+              --notes "$NOTES" \
               --latest
           else
             echo "Creating new draft release ${TAG}"
