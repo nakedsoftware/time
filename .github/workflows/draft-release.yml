@@ -160,16 +160,19 @@ jobs:
   build-linux:
     name: Build Linux (${{ matrix.platform_name }})
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: amd64
             platform_name: "x64"
             artifact_suffix: "linux-x64"
+            runner: ubuntu-24.04
           - arch: arm64
             platform_name: "ARM64"
             artifact_suffix: "linux-arm64"
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -183,22 +186,17 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Install build dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev
-
-      - name: Install cross-compilation tools for ARM64
-        if: matrix.arch == 'arm64'
-        run: |
-          sudo apt-get install -y gcc-aarch64-linux-gnu libasound2-dev:arm64
+          # Try to install the time64 package first, fall back to the standard package
+          sudo apt-get install -y libasound2t64-dev || sudo apt-get install -y libasound2-dev
 
       - name: Build for Linux ${{ matrix.platform_name }}
         env:
           GOOS: linux
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 1
-          CC: ${{ matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || 'gcc' }}
         run: |
           mkdir -p dist
           go build -ldflags="-s -w -X main.version=${{ needs.prepare.outputs.version }}" \
@@ -227,6 +225,7 @@ jobs:
     needs: prepare
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-13
@@ -283,6 +282,7 @@ jobs:
     needs: prepare
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: amd64
@@ -335,6 +335,7 @@ jobs:
   create-release:
     name: Create/Update Draft Release
     needs: [prepare, build-linux, build-macos, build-windows]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -342,16 +343,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check build status
+        id: build_status
+        run: |
+          BUILD_LINUX="${{ needs.build-linux.result }}"
+          BUILD_MACOS="${{ needs.build-macos.result }}"
+          BUILD_WINDOWS="${{ needs.build-windows.result }}"
+          
+          echo "Build Linux: ${BUILD_LINUX}"
+          echo "Build macOS: ${BUILD_MACOS}"
+          echo "Build Windows: ${BUILD_WINDOWS}"
+          
+          if [[ "${BUILD_LINUX}" == "success" && "${BUILD_MACOS}" == "success" && "${BUILD_WINDOWS}" == "success" ]]; then
+            echo "all_success=true" >> $GITHUB_OUTPUT
+            echo "✅ All builds succeeded"
+          else
+            echo "all_success=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Some builds failed, but continuing with available artifacts"
+          fi
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+        continue-on-error: true
 
       - name: Display downloaded artifacts
         run: |
           echo "Downloaded artifacts:"
-          ls -lR artifacts/
+          ls -lR artifacts/ || echo "No artifacts directory found"
 
       - name: Create or update draft release
         env:
@@ -359,6 +380,15 @@ jobs:
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
           TAG="v${VERSION}"
+          
+          # Check if we have any artifacts
+          if [ -d "artifacts" ] && [ "$(ls -A artifacts 2>/dev/null)" ]; then
+            ARTIFACT_COUNT=$(ls -1 artifacts | wc -l)
+            echo "Found ${ARTIFACT_COUNT} artifact(s)"
+          else
+            echo "::error::No artifacts found. All builds may have failed."
+            exit 1
+          fi
           
           if [ "${{ needs.prepare.outputs.release_exists }}" = "true" ]; then
             echo "Updating existing draft release ${TAG}"
@@ -388,6 +418,11 @@ jobs:
               --latest \
               artifacts/*
           fi
+          
+          # Add warning if not all builds succeeded
+          if [ "${{ steps.build_status.outputs.all_success }}" != "true" ]; then
+            echo "::warning::Some platform builds failed. The release is incomplete."
+          fi
 
       - name: Output release information
         env:
@@ -397,5 +432,15 @@ jobs:
           TAG="v${VERSION}"
           RELEASE_URL=$(gh release view "${TAG}" --json url --jq '.url')
           
-          echo "::notice title=Draft Release Created/Updated::Release ${TAG} is ready for review at ${RELEASE_URL}"
+          if [ "${{ steps.build_status.outputs.all_success }}" = "true" ]; then
+            echo "::notice title=Draft Release Created/Updated::Release ${TAG} is ready for review at ${RELEASE_URL}"
+          else
+            echo "::warning title=Draft Release Partially Created::Release ${TAG} created with available artifacts at ${RELEASE_URL}. Some platform builds failed."
+          fi
+          
           echo "Draft Release URL: ${RELEASE_URL}"
+          echo ""
+          echo "Build Results:"
+          echo "- Linux: ${{ needs.build-linux.result }}"
+          echo "- macOS: ${{ needs.build-macos.result }}"
+          echo "- Windows: ${{ needs.build-windows.result }}"

@@ -23,11 +23,11 @@ The workflow is triggered automatically in two ways:
 
 #### 2. `build-linux`
 Builds Linux executables for:
-- **x64 (amd64)**: Standard 64-bit Intel/AMD architecture
-- **ARM64**: ARM-based 64-bit architecture (e.g., Raspberry Pi, AWS Graviton)
+- **x64 (amd64)**: Standard 64-bit Intel/AMD architecture (uses ubuntu-24.04 runner)
+- **ARM64**: ARM-based 64-bit architecture (uses ubuntu-24.04-arm runner)
 
 Features:
-- Cross-compilation support for ARM64
+- Native compilation on architecture-specific runners (no cross-compilation)
 - Creates `.tar.gz` archives with SHA256 checksums
 - Embeds version information in the binary
 
@@ -126,8 +126,11 @@ You can also manually trigger the workflow:
 
 ### Reliability
 - **Version validation**: Ensures version numbers follow semantic versioning
-- **Error handling**: Fails early if version format is invalid or builds fail
-- **Artifact verification**: Confirms all artifacts are uploaded successfully
+- **Error handling**: Fails early if version format is invalid
+- **Fail-fast disabled**: All platform builds run to completion, even if others fail
+- **Partial release support**: Creates release with available artifacts if some builds fail
+- **Build status reporting**: Shows which platforms succeeded/failed
+- **Artifact verification**: Confirms artifacts are present before creating release
 - **Idempotent updates**: Can safely re-run to update an existing draft release
 
 ## Configuration
