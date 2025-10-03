@@ -288,9 +288,6 @@ jobs:
           - arch: amd64
             platform_name: "x64"
             artifact_suffix: "windows-x64"
-          - arch: arm64
-            platform_name: "ARM64"
-            artifact_suffix: "windows-arm64"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

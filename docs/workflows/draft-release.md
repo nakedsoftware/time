@@ -44,10 +44,9 @@ Features:
 #### 4. `build-windows`
 Builds Windows executables for:
 - **x64 (amd64)**: Standard 64-bit Windows
-- **ARM64**: Windows on ARM (e.g., Surface Pro X)
 
 Features:
-- Cross-compilation support for ARM64
+- Native build with CGO enabled for full functionality
 - Creates `.zip` archives with SHA256 checksums
 - Embeds version information in the binary
 
@@ -65,6 +64,13 @@ Each build job produces:
 - A compressed archive (`.tar.gz` for Linux/macOS, `.zip` for Windows)
 - A SHA256 checksum file for verification
 
+### Supported Platforms
+
+The workflow builds for the following platforms:
+- **Linux**: x64 (amd64), ARM64
+- **macOS**: x64 (Intel), ARM64 (Apple Silicon)
+- **Windows**: x64 only
+
 ### Naming Convention
 ```
 time-{version}-{platform}-{arch}.{extension}
@@ -73,6 +79,8 @@ time-{version}-{platform}-{arch}.{extension}.sha256
 
 Examples:
 - `time-1.2.3-linux-x64.tar.gz`
+- `time-1.2.3-linux-arm64.tar.gz`
+- `time-1.2.3-macos-x64.tar.gz`
 - `time-1.2.3-macos-arm64.tar.gz`
 - `time-1.2.3-windows-x64.zip`
 

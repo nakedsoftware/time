@@ -1,4 +1,4 @@
-name: Build Windows (Intel & ARM64)
+name: Build Windows (x64)
 
 on:
   repository_dispatch:
@@ -13,12 +13,8 @@ jobs:
         include:
           - os: windows-latest
             arch: amd64
-            platform_name: "Intel x64"
+            platform_name: "x64"
             artifact_suffix: "windows-x64"
-          - os: windows-latest  # Cross-compile ARM64 from x64 runner
-            arch: arm64
-            platform_name: "ARM64"
-            artifact_suffix: "windows-arm64"
     
     runs-on: ${{ matrix.os }}
     
