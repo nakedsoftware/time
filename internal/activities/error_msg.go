@@ -90,26 +90,18 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package activities
 
-import (
-	"github.com/spf13/cobra"
-)
+type errorMsg struct {
+	err error
+}
 
-var activityCommand = &cobra.Command{
-	Use:   "activity",
-	Short: "Manage the Activity Inventory",
-	Long: `
-The activity command provides subcommands for managing activities in the
-Activity Inventory. The Activity Inventory is the collection of all activities
-that have either been assigned to you or you assigned to yourself to complete.
-The Activity Inventory tracks the activities, allows you to review and
-prioritize the activities, and helps you to visualize all of the work that
-you need to complete. When you work on the activities, you will do so using
-pomodoros to track the amount of time you spend working on each activity and
-the type of work you performed to complete each activity.
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Usage()
-	},
+func newErrorMsg(err error) errorMsg {
+	return errorMsg{
+		err: err,
+	}
+}
+
+func (e errorMsg) Error() string {
+	return e.err.Error()
 }

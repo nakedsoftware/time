@@ -90,26 +90,35 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package cli
+package activities
 
 import (
-	"github.com/spf13/cobra"
+	"context"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/nakedsoftware/time/internal/database"
+	"gorm.io/gorm"
 )
 
-var activityCommand = &cobra.Command{
-	Use:   "activity",
-	Short: "Manage the Activity Inventory",
-	Long: `
-The activity command provides subcommands for managing activities in the
-Activity Inventory. The Activity Inventory is the collection of all activities
-that have either been assigned to you or you assigned to yourself to complete.
-The Activity Inventory tracks the activities, allows you to review and
-prioritize the activities, and helps you to visualize all of the work that
-you need to complete. When you work on the activities, you will do so using
-pomodoros to track the amount of time you spend working on each activity and
-the type of work you performed to complete each activity.
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Usage()
-	},
+func loadActivitiesCmd(ctx context.Context, db *gorm.DB) tea.Cmd {
+	return func() tea.Msg {
+		activities, err := gorm.G[database.Activity](db).
+			Where("completed = ?", false).
+			Order("priority ASC, created_at ASC").
+			Find(ctx)
+		if err != nil {
+			return newErrorMsg(err)
+		}
+
+		models := make([]activity, len(activities))
+		for i, a := range activities {
+			models[i] = activity{
+				ID:       a.ID,
+				Title:    a.Title,
+				Priority: a.Priority,
+			}
+		}
+
+		return newLoadActivitiesMsg(models)
+	}
 }
