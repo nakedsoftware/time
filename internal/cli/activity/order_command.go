@@ -93,27 +93,200 @@
 package activity
 
 import (
+	"context"
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/google/uuid"
 	"github.com/nakedsoftware/time/internal/activities"
 	appcontext "github.com/nakedsoftware/time/internal/context"
+	"github.com/nakedsoftware/time/internal/database"
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
-var OrderCommand = &cobra.Command{
-	Use:   "order",
-	Short: "Prioritize the Activity Inventory",
-	Long: `
+var (
+	beforeID string
+	afterID  string
+
+	OrderCommand = &cobra.Command{
+		Use:   "order",
+		Short: "Prioritize the Activity Inventory",
+		Long: `
 The activity order command is used to prioritize the activities in the
 Activity Inventory. The order command is interactive and will allow you to
 view the active activities in the Activity Inventory, select the activity,
 and move it to its new place in the Activity Inventory.
 `,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		p := tea.NewProgram(activities.NewModel(
-			cmd.Context(),
-			appcontext.GetDB(cmd),
-		))
-		_, err := p.Run()
-		return err
-	},
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 {
+				id, err := uuid.Parse(args[0])
+				if err != nil {
+					return err
+				}
+
+				if len(beforeID) > 0 {
+					otherID, err := uuid.Parse(beforeID)
+					if err != nil {
+						return err
+					}
+
+					return moveActivityBefore(cmd.Context(), id, otherID)
+				}
+
+				if len(afterID) > 0 {
+					otherID, err := uuid.Parse(afterID)
+					if err != nil {
+						return err
+					}
+
+					return moveActivityAfter(cmd.Context(), id, otherID)
+				}
+
+				return fmt.Errorf(
+					"either --before or --after must be specified",
+				)
+			}
+
+			return showOrderUI(cmd.Context())
+		},
+	}
+)
+
+func init() {
+	OrderCommand.Flags().StringVar(
+		&afterID,
+		"after",
+		"",
+		"ID of the activity to move the activity after",
+	)
+	OrderCommand.Flags().StringVar(
+		&beforeID,
+		"before",
+		"",
+		"ID of the activity to move the activity in front of",
+	)
+}
+
+func showOrderUI(ctx context.Context) error {
+	p := tea.NewProgram(activities.NewModel(
+		ctx,
+		appcontext.GetDB(ctx),
+	))
+	_, err := p.Run()
+	return err
+}
+
+func moveActivityBefore(ctx context.Context, id, otherID uuid.UUID) error {
+	db := appcontext.GetDB(ctx)
+	return db.Transaction(func(tx *gorm.DB) error {
+		activityList, err := gorm.G[database.Activity](db).
+			Where("completed = ?", false).
+			Order("priority ASC, created_at ASC").
+			Find(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Find the indices of both activities
+		var activityIndex = -1
+		var otherIndex = -1
+
+		for i, activity := range activityList {
+			if activity.ID == id {
+				activityIndex = i
+			}
+			if activity.ID == otherID {
+				otherIndex = i
+			}
+		}
+
+		// Validate both activities were found
+		if activityIndex == -1 {
+			return fmt.Errorf("activity with ID %s not found", id)
+		}
+		if otherIndex == -1 {
+			return fmt.Errorf("activity with ID %s not found", otherID)
+		}
+
+		// Remove the activity from its current position
+		activityToMove := activityList[activityIndex]
+		activityList = append(activityList[:activityIndex], activityList[activityIndex+1:]...)
+
+		// Adjust otherIndex if needed (if we removed an element before it)
+		if activityIndex < otherIndex {
+			otherIndex--
+		}
+
+		// Insert the activity before the target position
+		activityList = append(activityList[:otherIndex], append([]database.Activity{activityToMove}, activityList[otherIndex:]...)...)
+
+		// Update all priorities from 1 to len(activityList)
+		for i := range activityList {
+			activityList[i].Priority = i + 1
+			if err := tx.Save(&activityList[i]).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func moveActivityAfter(ctx context.Context, id, otherID uuid.UUID) error {
+	db := appcontext.GetDB(ctx)
+	return db.Transaction(func(tx *gorm.DB) error {
+		activityList, err := gorm.G[database.Activity](db).
+			Where("completed = ?", false).
+			Order("priority ASC, created_at ASC").
+			Find(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Find the indices of both activities
+		var activityIndex = -1
+		var otherIndex = -1
+
+		for i, activity := range activityList {
+			if activity.ID == id {
+				activityIndex = i
+			}
+			if activity.ID == otherID {
+				otherIndex = i
+			}
+		}
+
+		// Validate both activities were found
+		if activityIndex == -1 {
+			return fmt.Errorf("activity with ID %s not found", id)
+		}
+		if otherIndex == -1 {
+			return fmt.Errorf("activity with ID %s not found", otherID)
+		}
+
+		// Remove the activity from its current position
+		activityToMove := activityList[activityIndex]
+		activityList = append(activityList[:activityIndex], activityList[activityIndex+1:]...)
+
+		// Adjust otherIndex if needed (if we removed an element before it)
+		if activityIndex < otherIndex {
+			otherIndex--
+		}
+
+		// Insert the activity after the target position (otherIndex + 1)
+		insertPosition := otherIndex + 1
+		activityList = append(activityList[:insertPosition], append([]database.Activity{activityToMove}, activityList[insertPosition:]...)...)
+
+		// Update all priorities from 1 to len(activityList)
+		for i := range activityList {
+			activityList[i].Priority = i + 1
+			if err := tx.Save(&activityList[i]).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

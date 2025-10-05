@@ -140,7 +140,7 @@ completed.
 			return err
 		}
 
-		db := appcontext.GetDB(cmd)
+		db := appcontext.GetDB(cmd.Context())
 
 		id, err := startPomodoro(cmd.Context(), db, activityID)
 		if err != nil {

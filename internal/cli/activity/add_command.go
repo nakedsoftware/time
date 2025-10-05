@@ -113,7 +113,7 @@ project or an important task that you want to complete.
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db := appcontext.GetDB(cmd)
+		db := appcontext.GetDB(cmd.Context())
 
 		title := args[0]
 		id, err := uuid.NewV7()

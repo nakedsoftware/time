@@ -136,7 +136,7 @@ command or standard input.
 			return err
 		}
 
-		db := appcontext.GetDB(cmd)
+		db := appcontext.GetDB(cmd.Context())
 
 		rowsAffected, err := gorm.G[database.Activity](db).
 			Where("id = ?", activityID).

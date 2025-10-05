@@ -95,7 +95,6 @@ package context
 import (
 	"context"
 
-	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
@@ -103,8 +102,8 @@ type contextKey string
 
 const databaseContextKey contextKey = "db"
 
-func GetDB(cmd *cobra.Command) *gorm.DB {
-	return cmd.Context().Value(databaseContextKey).(*gorm.DB)
+func GetDB(ctx context.Context) *gorm.DB {
+	return ctx.Value(databaseContextKey).(*gorm.DB)
 }
 
 func WithDB(ctx context.Context, db *gorm.DB) context.Context {
