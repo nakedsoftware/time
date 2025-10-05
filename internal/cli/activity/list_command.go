@@ -111,7 +111,7 @@ with the same priority will be ordered by their creation date. By default,
 only non-completed activities will be returned.
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db := appcontext.GetDB(cmd)
+		db := appcontext.GetDB(cmd.Context())
 		activities, err := gorm.G[database.Activity](db).
 			Where("completed = ?", false).
 			Order("priority, created_at").

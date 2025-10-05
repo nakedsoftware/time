@@ -90,161 +90,139 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package pomodoro
+package activities
 
 import (
-	"bufio"
 	"context"
-	"database/sql"
 	"fmt"
-	"io"
-	"os"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
-	appcontext "github.com/nakedsoftware/time/internal/context"
-	"github.com/nakedsoftware/time/internal/database"
-	"github.com/nakedsoftware/time/internal/pomodoro"
-	"github.com/spf13/cobra"
+	tea "github.com/charmbracelet/bubbletea"
 	"gorm.io/gorm"
 )
 
-var StartCommand = &cobra.Command{
-	Use:   "start activity-id",
-	Short: "Starts a pomodoro",
-	Long: `
-The start command will start a pomodoro to allow you to focus on completing
-an important activity. The command will present a timer for 25 minutes during
-which you can focus on completing the work in front of you. After the pomodoro
-completes, an alarm will sound and the pomodoro will be recorded as being
-completed.
-`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			activityIDStr string
-			err           error
-		)
-		if len(args) > 0 {
-			activityIDStr = args[0]
-		} else {
-			activityIDStr, err = readActivityID(cmd.Context())
-			if err != nil {
-				return err
+type Model interface {
+	tea.Model
+}
+
+type state int8
+
+const (
+	stateSelecting state = iota
+	stateMoving
+)
+
+type model struct {
+	ctx        context.Context
+	db         *gorm.DB
+	activities []activity
+	err        error
+	cursor     int
+	state      state
+}
+
+func NewModel(ctx context.Context, db *gorm.DB) Model {
+	return model{
+		ctx:        ctx,
+		db:         db,
+		activities: []activity{},
+		err:        nil,
+		cursor:     0,
+		state:      stateSelecting,
+	}
+}
+
+func (m model) Init() tea.Cmd {
+	return loadActivitiesCmd(m.ctx, m.db)
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case errorMsg:
+		m.err = msg
+
+	case loadActivitiesMsg:
+		m.activities = msg.Activities
+		m.cursor = 0
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+
+		case "up", "k":
+			if m.cursor > 0 {
+				switch m.state {
+				case stateSelecting:
+
+				case stateMoving:
+					tmp := m.activities[m.cursor-1]
+					m.activities[m.cursor-1] = m.activities[m.cursor]
+					m.activities[m.cursor] = tmp
+				}
+
+				m.cursor--
+			}
+
+		case "down", "j":
+			if m.cursor < len(m.activities)-1 {
+				switch m.state {
+				case stateSelecting:
+
+				case stateMoving:
+					tmp := m.activities[m.cursor+1]
+					m.activities[m.cursor+1] = m.activities[m.cursor]
+					m.activities[m.cursor] = tmp
+				}
+
+				m.cursor++
+			}
+
+		case "enter", " ":
+			switch m.state {
+			case stateSelecting:
+				m.state = stateMoving
+
+			case stateMoving:
+				for i, _ := range m.activities {
+					m.activities[i].Priority = i + 1
+				}
+
+				m.state = stateSelecting
+				return m, saveActivitiesCmd(m.ctx, m.db, m.activities)
 			}
 		}
+	}
 
-		activityID, err := uuid.Parse(activityIDStr)
-		if err != nil {
-			return err
-		}
-
-		db := appcontext.GetDB(cmd.Context())
-
-		id, err := startPomodoro(cmd.Context(), db, activityID)
-		if err != nil {
-			return err
-		}
-
-		completed, err := pomodoro.Run(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		return endPomodoro(cmd.Context(), db, id, completed)
-	},
+	return m, nil
 }
 
-func readActivityID(ctx context.Context) (string, error) {
-	// readActivityID will attempt to read the activity ID from stdin. A
-	// timeout context is used to avoid blocking indefinitely if no data is
-	// available on stdin.
+func (m model) View() string {
+	if m.err != nil {
+		return m.err.Error()
+	}
 
-	const timeout = 1 * time.Second
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	done := make(chan string, 1)
-	errChan := make(chan error, 1)
-
-	go func() {
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			done <- strings.TrimSpace(scanner.Text())
-		} else {
-			if err := scanner.Err(); err != nil {
-				errChan <- err
-			} else {
-				errChan <- io.EOF
-			}
-		}
-	}()
-
-	select {
-	case activityIDStr := <-done:
-		return activityIDStr, nil
-
-	case err := <-errChan:
-		if err == io.EOF {
-			return "", fmt.Errorf("no input provided for activity ID (EOF)")
+	var out strings.Builder
+	for i, a := range m.activities {
+		cursor := " "
+		if i == m.cursor {
+			cursor = ">"
 		}
 
-		return "", err
-
-	case <-ctx.Done():
-		return "", fmt.Errorf("timed out waiting for activity ID input")
+		_, err := fmt.Fprintf(&out, "%s %s\n", cursor, truncateTitle(a.Title))
+		if err != nil {
+			return err.Error()
+		}
 	}
+
+	return out.String()
 }
 
-func startPomodoro(
-	ctx context.Context,
-	db *gorm.DB,
-	activityID uuid.UUID,
-) (uuid.UUID, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return id, err
+func truncateTitle(title string) string {
+	const maxTitleLength = 72
+	if len(title) > maxTitleLength {
+		return title[:maxTitleLength-3] + "..."
 	}
 
-	p := &database.Pomodoro{
-		Model: database.Model{
-			ID: id,
-		},
-		ActivityID: activityID,
-		StartTime:  time.Now(),
-	}
-	err = gorm.G[database.Pomodoro](db).Create(ctx, p)
-	return id, err
-}
-
-func endPomodoro(
-	ctx context.Context,
-	db *gorm.DB,
-	id uuid.UUID,
-	completed bool,
-) error {
-	rowsAffected, err := gorm.G[database.Pomodoro](db).
-		Where("id = ?", id).
-		Updates(
-			ctx,
-			database.Pomodoro{
-				EndTime: sql.NullTime{
-					Time:  time.Now(),
-					Valid: true,
-				},
-				Completed: completed,
-			},
-		)
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf(
-			"pomodoro not found in the database to be closed",
-		)
-	}
-
-	return nil
+	return title
 }

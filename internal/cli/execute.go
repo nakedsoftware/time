@@ -94,9 +94,6 @@ package cli
 
 import (
 	"context"
-
-	"github.com/nakedsoftware/time/internal/cli/activity"
-	"github.com/nakedsoftware/time/internal/cli/pomodoro"
 )
 
 // Execute starts the program.
@@ -108,15 +105,4 @@ import (
 // If a command encounters an error, that error is returned to the caller.
 func Execute(ctx context.Context) error {
 	return rootCommand.ExecuteContext(ctx)
-}
-
-func init() {
-	rootCommand.AddCommand(activityCommand)
-	rootCommand.AddCommand(pomodoroCommand)
-
-	activityCommand.AddCommand(activity.AddCommand)
-	activityCommand.AddCommand(activity.CompleteCommand)
-	activityCommand.AddCommand(activity.ListCommand)
-
-	pomodoroCommand.AddCommand(pomodoro.StartCommand)
 }

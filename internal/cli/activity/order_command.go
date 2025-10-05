@@ -90,161 +90,176 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package pomodoro
+package activity
 
 import (
-	"bufio"
 	"context"
-	"database/sql"
 	"fmt"
-	"io"
-	"os"
-	"strings"
-	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
+	"github.com/nakedsoftware/time/internal/activities"
 	appcontext "github.com/nakedsoftware/time/internal/context"
 	"github.com/nakedsoftware/time/internal/database"
-	"github.com/nakedsoftware/time/internal/pomodoro"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-var StartCommand = &cobra.Command{
-	Use:   "start activity-id",
-	Short: "Starts a pomodoro",
-	Long: `
-The start command will start a pomodoro to allow you to focus on completing
-an important activity. The command will present a timer for 25 minutes during
-which you can focus on completing the work in front of you. After the pomodoro
-completes, an alarm will sound and the pomodoro will be recorded as being
-completed.
+var (
+	beforeID string
+	afterID  string
+
+	OrderCommand = &cobra.Command{
+		Use:   "order",
+		Short: "Prioritize the Activity Inventory",
+		Long: `
+The activity order command is used to prioritize the activities in the
+Activity Inventory. The order command is interactive and will allow you to
+view the active activities in the Activity Inventory, select the activity,
+and move it to its new place in the Activity Inventory.
 `,
-	Args: cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			activityIDStr string
-			err           error
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 {
+				id, err := uuid.Parse(args[0])
+				if err != nil {
+					return err
+				}
+
+				if len(beforeID) > 0 {
+					otherID, err := uuid.Parse(beforeID)
+					if err != nil {
+						return err
+					}
+
+					return moveActivityBefore(cmd.Context(), id, otherID)
+				}
+
+				if len(afterID) > 0 {
+					otherID, err := uuid.Parse(afterID)
+					if err != nil {
+						return err
+					}
+
+					return moveActivityAfter(cmd.Context(), id, otherID)
+				}
+
+				return fmt.Errorf(
+					"either --before or --after must be specified",
+				)
+			}
+
+			return showOrderUI(cmd.Context())
+		},
+	}
+)
+
+func init() {
+	OrderCommand.Flags().StringVar(
+		&afterID,
+		"after",
+		"",
+		"ID of the activity to move the activity after",
+	)
+	OrderCommand.Flags().StringVar(
+		&beforeID,
+		"before",
+		"",
+		"ID of the activity to move the activity in front of",
+	)
+}
+
+func showOrderUI(ctx context.Context) error {
+	p := tea.NewProgram(activities.NewModel(
+		ctx,
+		appcontext.GetDB(ctx),
+	))
+	_, err := p.Run()
+	return err
+}
+
+// reorderActivities moves an activity to a new position in the activity list.
+// If insertAfter is true, the activity is inserted after the target position,
+// otherwise it's inserted before the target position.
+func reorderActivities(
+	ctx context.Context,
+	id, otherID uuid.UUID,
+	insertAfter bool,
+) error {
+	db := appcontext.GetDB(ctx)
+	return db.Transaction(func(tx *gorm.DB) error {
+		activityList, err := gorm.G[database.Activity](db).
+			Where("completed = ?", false).
+			Order("priority ASC, created_at ASC").
+			Find(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Find the indices of both activities
+		var activityIndex = -1
+		var otherIndex = -1
+
+		for i, activity := range activityList {
+			if activity.ID == id {
+				activityIndex = i
+			}
+			if activity.ID == otherID {
+				otherIndex = i
+			}
+		}
+
+		// Validate both activities were found
+		if activityIndex == -1 {
+			return fmt.Errorf("activity with ID %s not found", id)
+		}
+		if otherIndex == -1 {
+			return fmt.Errorf("activity with ID %s not found", otherID)
+		}
+
+		// Remove the activity from its current position
+		activityToMove := activityList[activityIndex]
+		activityList = append(
+			activityList[:activityIndex],
+			activityList[activityIndex+1:]...,
 		)
-		if len(args) > 0 {
-			activityIDStr = args[0]
-		} else {
-			activityIDStr, err = readActivityID(cmd.Context())
-			if err != nil {
+
+		// Adjust otherIndex if needed (if we removed an element before it)
+		if activityIndex < otherIndex {
+			otherIndex--
+		}
+
+		// Calculate insert position
+		insertPosition := otherIndex
+		if insertAfter {
+			insertPosition++
+		}
+
+		// Insert the activity at the target position
+		activityList = append(
+			activityList[:insertPosition],
+			append(
+				[]database.Activity{activityToMove},
+				activityList[insertPosition:]...,
+			)...,
+		)
+
+		// Update all priorities from 1 to len(activityList)
+		for i := range activityList {
+			activityList[i].Priority = i + 1
+			if err := tx.Save(&activityList[i]).Error; err != nil {
 				return err
 			}
 		}
 
-		activityID, err := uuid.Parse(activityIDStr)
-		if err != nil {
-			return err
-		}
-
-		db := appcontext.GetDB(cmd.Context())
-
-		id, err := startPomodoro(cmd.Context(), db, activityID)
-		if err != nil {
-			return err
-		}
-
-		completed, err := pomodoro.Run(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		return endPomodoro(cmd.Context(), db, id, completed)
-	},
+		return nil
+	})
 }
 
-func readActivityID(ctx context.Context) (string, error) {
-	// readActivityID will attempt to read the activity ID from stdin. A
-	// timeout context is used to avoid blocking indefinitely if no data is
-	// available on stdin.
-
-	const timeout = 1 * time.Second
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	done := make(chan string, 1)
-	errChan := make(chan error, 1)
-
-	go func() {
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			done <- strings.TrimSpace(scanner.Text())
-		} else {
-			if err := scanner.Err(); err != nil {
-				errChan <- err
-			} else {
-				errChan <- io.EOF
-			}
-		}
-	}()
-
-	select {
-	case activityIDStr := <-done:
-		return activityIDStr, nil
-
-	case err := <-errChan:
-		if err == io.EOF {
-			return "", fmt.Errorf("no input provided for activity ID (EOF)")
-		}
-
-		return "", err
-
-	case <-ctx.Done():
-		return "", fmt.Errorf("timed out waiting for activity ID input")
-	}
+func moveActivityBefore(ctx context.Context, id, otherID uuid.UUID) error {
+	return reorderActivities(ctx, id, otherID, false)
 }
 
-func startPomodoro(
-	ctx context.Context,
-	db *gorm.DB,
-	activityID uuid.UUID,
-) (uuid.UUID, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return id, err
-	}
-
-	p := &database.Pomodoro{
-		Model: database.Model{
-			ID: id,
-		},
-		ActivityID: activityID,
-		StartTime:  time.Now(),
-	}
-	err = gorm.G[database.Pomodoro](db).Create(ctx, p)
-	return id, err
-}
-
-func endPomodoro(
-	ctx context.Context,
-	db *gorm.DB,
-	id uuid.UUID,
-	completed bool,
-) error {
-	rowsAffected, err := gorm.G[database.Pomodoro](db).
-		Where("id = ?", id).
-		Updates(
-			ctx,
-			database.Pomodoro{
-				EndTime: sql.NullTime{
-					Time:  time.Now(),
-					Valid: true,
-				},
-				Completed: completed,
-			},
-		)
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf(
-			"pomodoro not found in the database to be closed",
-		)
-	}
-
-	return nil
+func moveActivityAfter(ctx context.Context, id, otherID uuid.UUID) error {
+	return reorderActivities(ctx, id, otherID, true)
 }

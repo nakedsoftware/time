@@ -90,161 +90,39 @@
 // By using the Software, you acknowledge that you have read this Agreement,
 // understand it, and agree to be bound by its terms and conditions.
 
-package pomodoro
+package activities
 
 import (
-	"bufio"
 	"context"
-	"database/sql"
-	"fmt"
-	"io"
-	"os"
-	"strings"
-	"time"
 
-	"github.com/google/uuid"
-	appcontext "github.com/nakedsoftware/time/internal/context"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nakedsoftware/time/internal/database"
-	"github.com/nakedsoftware/time/internal/pomodoro"
-	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
 
-var StartCommand = &cobra.Command{
-	Use:   "start activity-id",
-	Short: "Starts a pomodoro",
-	Long: `
-The start command will start a pomodoro to allow you to focus on completing
-an important activity. The command will present a timer for 25 minutes during
-which you can focus on completing the work in front of you. After the pomodoro
-completes, an alarm will sound and the pomodoro will be recorded as being
-completed.
-`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			activityIDStr string
-			err           error
-		)
-		if len(args) > 0 {
-			activityIDStr = args[0]
-		} else {
-			activityIDStr, err = readActivityID(cmd.Context())
-			if err != nil {
-				return err
-			}
-		}
-
-		activityID, err := uuid.Parse(activityIDStr)
-		if err != nil {
-			return err
-		}
-
-		db := appcontext.GetDB(cmd.Context())
-
-		id, err := startPomodoro(cmd.Context(), db, activityID)
-		if err != nil {
-			return err
-		}
-
-		completed, err := pomodoro.Run(cmd.Context())
-		if err != nil {
-			return err
-		}
-
-		return endPomodoro(cmd.Context(), db, id, completed)
-	},
-}
-
-func readActivityID(ctx context.Context) (string, error) {
-	// readActivityID will attempt to read the activity ID from stdin. A
-	// timeout context is used to avoid blocking indefinitely if no data is
-	// available on stdin.
-
-	const timeout = 1 * time.Second
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	done := make(chan string, 1)
-	errChan := make(chan error, 1)
-
-	go func() {
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			done <- strings.TrimSpace(scanner.Text())
-		} else {
-			if err := scanner.Err(); err != nil {
-				errChan <- err
-			} else {
-				errChan <- io.EOF
-			}
-		}
-	}()
-
-	select {
-	case activityIDStr := <-done:
-		return activityIDStr, nil
-
-	case err := <-errChan:
-		if err == io.EOF {
-			return "", fmt.Errorf("no input provided for activity ID (EOF)")
-		}
-
-		return "", err
-
-	case <-ctx.Done():
-		return "", fmt.Errorf("timed out waiting for activity ID input")
-	}
-}
-
-func startPomodoro(
+func saveActivitiesCmd(
 	ctx context.Context,
 	db *gorm.DB,
-	activityID uuid.UUID,
-) (uuid.UUID, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return id, err
-	}
+	activities []activity,
+) tea.Cmd {
+	return func() tea.Msg {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			for _, a := range activities {
+				_, err := gorm.G[database.Activity](db).
+					Where("id = ?", a.ID).
+					Update(ctx, "priority", a.Priority)
+				if err != nil {
+					return err
+				}
+			}
 
-	p := &database.Pomodoro{
-		Model: database.Model{
-			ID: id,
-		},
-		ActivityID: activityID,
-		StartTime:  time.Now(),
-	}
-	err = gorm.G[database.Pomodoro](db).Create(ctx, p)
-	return id, err
-}
+			return nil
+		})
 
-func endPomodoro(
-	ctx context.Context,
-	db *gorm.DB,
-	id uuid.UUID,
-	completed bool,
-) error {
-	rowsAffected, err := gorm.G[database.Pomodoro](db).
-		Where("id = ?", id).
-		Updates(
-			ctx,
-			database.Pomodoro{
-				EndTime: sql.NullTime{
-					Time:  time.Now(),
-					Valid: true,
-				},
-				Completed: completed,
-			},
-		)
-	if err != nil {
-		return err
+		if err != nil {
+			return newErrorMsg(err)
+		}
+		
+		return nil
 	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf(
-			"pomodoro not found in the database to be closed",
-		)
-	}
-
-	return nil
 }
