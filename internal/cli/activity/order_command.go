@@ -178,7 +178,14 @@ func showOrderUI(ctx context.Context) error {
 	return err
 }
 
-func moveActivityBefore(ctx context.Context, id, otherID uuid.UUID) error {
+// reorderActivities moves an activity to a new position in the activity list.
+// If insertAfter is true, the activity is inserted after the target position,
+// otherwise it's inserted before the target position.
+func reorderActivities(
+	ctx context.Context,
+	id, otherID uuid.UUID,
+	insertAfter bool,
+) error {
 	db := appcontext.GetDB(ctx)
 	return db.Transaction(func(tx *gorm.DB) error {
 		activityList, err := gorm.G[database.Activity](db).
@@ -212,15 +219,30 @@ func moveActivityBefore(ctx context.Context, id, otherID uuid.UUID) error {
 
 		// Remove the activity from its current position
 		activityToMove := activityList[activityIndex]
-		activityList = append(activityList[:activityIndex], activityList[activityIndex+1:]...)
+		activityList = append(
+			activityList[:activityIndex],
+			activityList[activityIndex+1:]...,
+		)
 
 		// Adjust otherIndex if needed (if we removed an element before it)
 		if activityIndex < otherIndex {
 			otherIndex--
 		}
 
-		// Insert the activity before the target position
-		activityList = append(activityList[:otherIndex], append([]database.Activity{activityToMove}, activityList[otherIndex:]...)...)
+		// Calculate insert position
+		insertPosition := otherIndex
+		if insertAfter {
+			insertPosition++
+		}
+
+		// Insert the activity at the target position
+		activityList = append(
+			activityList[:insertPosition],
+			append(
+				[]database.Activity{activityToMove},
+				activityList[insertPosition:]...,
+			)...,
+		)
 
 		// Update all priorities from 1 to len(activityList)
 		for i := range activityList {
@@ -234,59 +256,10 @@ func moveActivityBefore(ctx context.Context, id, otherID uuid.UUID) error {
 	})
 }
 
+func moveActivityBefore(ctx context.Context, id, otherID uuid.UUID) error {
+	return reorderActivities(ctx, id, otherID, false)
+}
+
 func moveActivityAfter(ctx context.Context, id, otherID uuid.UUID) error {
-	db := appcontext.GetDB(ctx)
-	return db.Transaction(func(tx *gorm.DB) error {
-		activityList, err := gorm.G[database.Activity](db).
-			Where("completed = ?", false).
-			Order("priority ASC, created_at ASC").
-			Find(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Find the indices of both activities
-		var activityIndex = -1
-		var otherIndex = -1
-
-		for i, activity := range activityList {
-			if activity.ID == id {
-				activityIndex = i
-			}
-			if activity.ID == otherID {
-				otherIndex = i
-			}
-		}
-
-		// Validate both activities were found
-		if activityIndex == -1 {
-			return fmt.Errorf("activity with ID %s not found", id)
-		}
-		if otherIndex == -1 {
-			return fmt.Errorf("activity with ID %s not found", otherID)
-		}
-
-		// Remove the activity from its current position
-		activityToMove := activityList[activityIndex]
-		activityList = append(activityList[:activityIndex], activityList[activityIndex+1:]...)
-
-		// Adjust otherIndex if needed (if we removed an element before it)
-		if activityIndex < otherIndex {
-			otherIndex--
-		}
-
-		// Insert the activity after the target position (otherIndex + 1)
-		insertPosition := otherIndex + 1
-		activityList = append(activityList[:insertPosition], append([]database.Activity{activityToMove}, activityList[insertPosition:]...)...)
-
-		// Update all priorities from 1 to len(activityList)
-		for i := range activityList {
-			activityList[i].Priority = i + 1
-			if err := tx.Save(&activityList[i]).Error; err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
+	return reorderActivities(ctx, id, otherID, true)
 }
